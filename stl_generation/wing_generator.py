@@ -911,6 +911,98 @@ IDEAL_F1_PARAMETERS = {
     "efficiency_factor": 0.92              # High efficiency
 }
 
+RB19_INSPIRED_F1_PARAMETERS = {
+    # Main Wing Structure (RB19 Philosophy)
+    "total_span": 1800,                    # RB19 uses full regulation width
+    "root_chord": 305,                     # RB19 wide root chord for stability
+    "tip_chord": 280,                      # RB19 gradual taper design
+    "chord_taper_ratio": 0.918,            # RB19 optimized taper ratio
+    "sweep_angle": 4.5,                    # RB19 characteristic sweep
+    "dihedral_angle": 3.2,                 # RB19 moderate dihedral balance
+    "twist_distribution_range": [-2.0, 1.0], # RB19 twist distribution
+    
+    # Airfoil Profile (RB19 Shallow Wing Philosophy)
+    "base_profile": "RB19_SHALLOW_MODIFIED",
+    "max_thickness_ratio": 0.039,          # RB19 shallow design (12% of 305mm chord)
+    "camber_ratio": 0.095,                 # RB19 moderate camber approach
+    "camber_position": 0.42,               # RB19 optimized camber position
+    "leading_edge_radius": 3.2,            # RB19 refined leading edge
+    "trailing_edge_thickness": 2.1,        # RB19 sharp trailing edge (STL: 2.5mm)
+    "upper_surface_radius": 850,           # RB19 characteristic curve
+    "lower_surface_radius": 1200,          # RB19 lower surface design
+    
+    # 4-Flap System (RB19 Signature Configuration)
+    "flap_count": 4,                       # RB19 signature 4-element wing
+    "flap_spans": [1750, 1680, 1580, 1450], # RB19 stepped span reduction
+    "flap_root_chords": [245, 195, 165, 125], # RB19 chord progression
+    "flap_tip_chords": [220, 175, 145, 110],  # RB19 tip chord reduction
+    "flap_cambers": [0.142, 0.118, 0.092, 0.068], # RB19 camber distribution
+    "flap_slot_gaps": [16, 14, 12, 10],      # RB19 optimized slot gaps
+    "flap_vertical_offsets": [28, 52, 78, 105], # RB19 vertical stacking
+    "flap_horizontal_offsets": [35, 68, 95, 118], # RB19 horizontal stagger
+    
+    # Endplate System (RB19 Cambered Design)
+    "endplate_height": 325,                # RB19 regulation maximum height
+    "endplate_max_width": 135,             # RB19 wider endplate base
+    "endplate_min_width": 45,              # RB19 tapered top design
+    "endplate_thickness_base": 12,         # RB19 structural thickness
+    "endplate_forward_lean": 8,            # RB19 forward lean angle
+    "endplate_rearward_sweep": 12,         # RB19 sweep characteristic
+    "endplate_outboard_wrap": 22,          # RB19 wrap angle optimization
+    
+    # Footplate Features (RB19 Aerodynamic Design)
+    "footplate_extension": 85,             # RB19 extended footplate
+    "footplate_height": 35,                # RB19 footplate height
+    "arch_radius": 145,                    # RB19 arch radius design
+    "footplate_thickness": 6,              # RB19 footplate thickness
+    "primary_strake_count": 2,             # RB19 strake configuration
+    "strake_heights": [55, 42],            # RB19 strake height progression
+    
+    # Y250 Vortex Region (RB19 Vortex Management)
+    "y250_width": 500,                     # Regulation fixed width
+    "y250_step_height": 20,                # RB19 step height optimization
+    "y250_transition_length": 100,         # RB19 blend zone length
+    "central_slot_width": 35,              # RB19 central slot design
+    
+    # Mounting Pylon System (RB19 Configuration)
+    "pylon_count": 2,                      # RB19 twin pylon setup
+    "pylon_spacing": 360,                  # RB19 pylon spacing
+    "pylon_major_axis": 42,                # RB19 pylon major axis
+    "pylon_minor_axis": 28,                # RB19 pylon minor axis
+    "pylon_length": 140,                   # RB19 pylon length
+    
+    # Cascade Elements (RB19 Winglet System)
+    "cascade_enabled": True,               # RB19 uses cascade elements
+    "primary_cascade_span": 280,           # RB19 primary cascade
+    "primary_cascade_chord": 65,           # RB19 cascade chord
+    "secondary_cascade_span": 180,         # RB19 secondary cascade
+    "secondary_cascade_chord": 45,         # RB19 secondary chord
+    
+    # Manufacturing Standards (RB19 Precision)
+    "wall_thickness_structural": 5,        # RB19 structural thickness
+    "wall_thickness_aerodynamic": 3,       # RB19 aero surface thickness
+    "wall_thickness_details": 2.5,         # RB19 detail thickness
+    "minimum_radius": 0.5,                 # RB19 minimum radius
+    "mesh_resolution_aero": 0.3,           # RB19 surface quality
+    "mesh_resolution_structural": 0.5,     # RB19 structural mesh
+    
+    # High-Resolution Construction (RB19 Modeling)
+    "resolution_span": 50,                 # RB19 accuracy resolution
+    "resolution_chord": 35,                # Enhanced chord resolution
+    "mesh_density": 2.0,                   # RB19 mesh density
+    "surface_smoothing": True,             # RB19 smooth surface finish
+    
+    # Premium Materials (RB19 Specifications)
+    "material": "RB19_Carbon_Fiber_Composite",
+    "density": 1450,                       # RB19 optimized density kg/m³
+    "weight_estimate": 3.2,                # RB19 lightweight design kg
+    
+    # Performance Targets (RB19 Dominance Parameters)
+    "target_downforce": 1350,              # RB19 high downforce target N
+    "target_drag": 165,                    # RB19 low drag achievement N
+    "efficiency_factor": 0.89              # RB19 superior efficiency
+}
+
 # Example usage
 if __name__ == "__main__":
     print("Ultra-Realistic F1 Front Wing Generator")
@@ -928,7 +1020,11 @@ if __name__ == "__main__":
     print("=== OPTION 2: Ideal Parameters Wing ===")
     ideal_wing = UltraRealisticF1FrontWingGenerator(**IDEAL_F1_PARAMETERS)
     ideal_mesh = ideal_wing.generate_complete_wing("ideal_f1_frontwing.stl")
-    
+
+    print("=== OPTION 2: RB19 Wing ===")
+    ideal_wing = UltraRealisticF1FrontWingGenerator(**RB19_INSPIRED_F1_PARAMETERS)
+    ideal_mesh = ideal_wing.generate_complete_wing("RB19_f1_frontwing.stl")
+
     print("\n" + "="*60)
     print("GENERATION COMPLETE!")
     print("="*60)

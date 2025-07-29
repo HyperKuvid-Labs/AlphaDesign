@@ -802,7 +802,7 @@ This analysis provides a solid foundation for aerodynamic development and setup 
     def save_analysis_results(self):
         """Save all results and generate comprehensive output"""
         # Create output directory
-        output_dir = "stl_cfd_analysis_output"
+        output_dir = "rb19_stl_cfd_analysis_output"
         os.makedirs(output_dir, exist_ok=True)
         
         # Save analysis data
@@ -963,7 +963,7 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Replace with your STL file path
-    stl_file_path = "ideal_f1_frontwing.stl"  # UPDATE THIS PATH
+    stl_file_path = "RB19_f1_frontwing.stl"  # UPDATE THIS PATH
     
     try:
         # Initialize analyzer
