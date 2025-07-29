@@ -963,7 +963,7 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Replace with your STL file path
-    stl_file_path = "errari_sf24_frontwing.stl"  # UPDATE THIS PATH
+    stl_file_path = "ferrari_sf24_frontwing_ideal.stl"  # UPDATE THIS PATH
     
     try:
         # Initialize analyzer

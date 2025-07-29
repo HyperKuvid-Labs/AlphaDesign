@@ -4,7 +4,35 @@ import math
 import os
 
 class F1FrontWingGenerator:
-    def __init__(self, max_width=1800, max_chord=400, wing_height_min=75, wing_height_max=275, main_wingspan=1750, main_chord_center=380, main_chord_tip=250, main_thickness=25, main_angle=8, num_elements=4, element_chords=[380, 180, 140, 120], element_gaps=[0, 50, 35, 25], element_angles=[8, 15, 22, 28], element_heights=[0, 45, 80, 110], flap_twist_angle=12, flap_camber=0.08, endplate_height=200, endplate_thickness=15, endplate_chord=350, endplate_rake_angle=3, spoon_width=250, spoon_depth=30, spoon_transition=150, resolution_span=40, resolution_chord=25, mesh_density=1.5, material="Carbon Fiber Composite", weight_estimate=3.5):
+    def __init__(self, 
+        max_width=1700,
+        max_chord=380,
+        wing_height_min=70,
+        wing_height_max=260,
+        main_wingspan=1650,
+        main_chord_center=360,
+        main_chord_tip=220,
+        main_thickness=22,
+        main_angle=7,
+        num_elements=3,
+        element_chords=[360, 160, 105],
+        element_gaps=[0, 45, 28],
+        element_angles=[7, 13, 19],
+        element_heights=[0, 38, 75],
+        flap_twist_angle=10,
+        flap_camber=0.07,
+        endplate_height=180,
+        endplate_thickness=13,
+        endplate_chord=320,
+        endplate_rake_angle=2,
+        spoon_width=220,
+        spoon_depth=25,
+        spoon_transition=130,
+        resolution_span=36,
+        resolution_chord=22,
+        mesh_density=1.3,
+        material="Next-Gen Carbon Composite",
+        weight_estimate=3.2):
         """
         Ferrari SF24-style F1 Front Wing Generator
         All parameters based on F1 regulations and SF24 specifications
@@ -33,7 +61,7 @@ class F1FrontWingGenerator:
         self.flap_twist_angle = flap_twist_angle     # Additional twist at tips for outwash
         self.flap_camber = flap_camber        # Camber ratio for flaps
         
-        # Endplate Parameters
+        # Endplate Parameters        max_width=1700,
         self.endplate_height = endplate_height     # Endplate height (mm)
         self.endplate_thickness = endplate_thickness   # Endplate thickness (mm)
         self.endplate_chord = endplate_chord      # Endplate chord length (mm)
@@ -381,11 +409,38 @@ if __name__ == "__main__":
     #     self.material = "Carbon Fiber Composite"
     #     self.weight_estimate = 3.5     # Estimated weight in kg
         
-    f1_wing = F1FrontWingGenerator()
+    f1_wing = F1FrontWingGenerator(max_width=1650,
+max_chord=375,
+wing_height_min=65,
+wing_height_max=245,
+main_wingspan=1600,
+main_chord_center=370,
+main_chord_tip=200,
+main_thickness=18,
+main_angle=12,
+num_elements=3,
+element_chords=[370, 175, 95],
+element_gaps=[0, 42, 22],
+element_angles=[12, 18, 26],
+element_heights=[0, 35, 65],
+flap_twist_angle=15,
+flap_camber=0.095,
+endplate_height=165,
+endplate_thickness=10,
+endplate_chord=295,
+endplate_rake_angle=4,
+spoon_width=200,
+spoon_depth=35,
+spoon_transition=110,
+resolution_span=45,
+resolution_chord=28,
+mesh_density=1.8,
+material="Theoretical Nanocarbon Composite",
+weight_estimate=2.1)
     
     # Generate the complete wing
     os.makedirs("stl_files_output", exist_ok=True)
-    mesh_result = f1_wing.generate_complete_wing("stl_files_output/ferrari_sf24_frontwing.stl")
+    mesh_result = f1_wing.generate_complete_wing("stl_files_output/ferrari_sf24_frontwing_ideal.stl")
     
     print("\n" + "="*50)
     print("FERRARI SF24 FRONT WING GENERATION COMPLETE!")
@@ -403,3 +458,35 @@ if __name__ == "__main__":
     print("• CFD analysis")  
     print("• CAD software import")
     print("• Wind tunnel testing")
+
+# #ideal params
+# self,
+# max_width=1650,
+# max_chord=375,
+# wing_height_min=65,
+# wing_height_max=245,
+# main_wingspan=1600,
+# main_chord_center=370,
+# main_chord_tip=200,
+# main_thickness=18,
+# main_angle=12,
+# num_elements=3,
+# element_chords=[370, 175, 95],
+# element_gaps=[0, 42, 22],
+# element_angles=[12, 18, 26],
+# element_heights=[0, 35, 65],
+# flap_twist_angle=15,
+# flap_camber=0.095,
+# endplate_height=165,
+# endplate_thickness=10,
+# endplate_chord=295,
+# endplate_rake_angle=4,
+# spoon_width=200,
+# spoon_depth=35,
+# spoon_transition=110,
+# resolution_span=45,
+# resolution_chord=28,
+# mesh_density=1.8,
+# material="Theoretical Nanocarbon Composite",
+# weight_estimate=2.1
+

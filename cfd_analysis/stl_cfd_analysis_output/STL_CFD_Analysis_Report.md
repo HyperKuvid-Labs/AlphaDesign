@@ -1,8 +1,8 @@
 # F1 FRONT WING CFD ANALYSIS REPORT
 ## STL-Based Aerodynamic Performance Analysis
 
-**Analysis Date:** 2025-07-29 04:53:50  
-**STL Source File:** `errari_sf24_frontwing.stl`  
+**Analysis Date:** 2025-07-29 16:40:14  
+**STL Source File:** `ferrari_sf24_frontwing_ideal.stl`  
 **Analysis Method:** STL Geometry Extraction + CFD Performance Modeling  
 
 ---
@@ -12,8 +12,8 @@
 This comprehensive analysis processes your STL file to extract actual wing geometry parameters, then performs detailed computational fluid dynamics analysis across multiple operating conditions. Unlike simplified models, this analysis uses **your actual wing geometry** extracted directly from the 3D STL mesh.
 
 ### Key Performance Results
-- **Maximum Downforce:** 375153479059.2 N
-- **Peak Efficiency (L/D):** 0.66
+- **Maximum Downforce:** 281436218646.3 N
+- **Peak Efficiency (L/D):** 1.11
 - **Optimal Speed:** 350 km/h
 - **Best Ground Clearance:** 50 mm
 
@@ -22,25 +22,25 @@ This comprehensive analysis processes your STL file to extract actual wing geome
 ## 📐 EXTRACTED GEOMETRY ANALYSIS
 
 ### STL Mesh Properties
-- **Mesh Vertices:** 9,010
-- **Mesh Faces:** 17,880
+- **Mesh Vertices:** 8,595
+- **Mesh Faces:** 17,064
 - **Processing Method:** Automated geometric feature extraction
 
 ### Wing Geometric Parameters
 | Parameter | Value |
 |-----------|-------|
-| **Wingspan** | 1765000.0 mm |
-| **Reference Area** | 199414.2679 m² |
+| **Wingspan** | 1610000.0 mm |
+| **Reference Area** | 118331.0108 m² |
 | **Number of Elements** | 4 |
 | **Cross-sections Analyzed** | 4 |
 
 ### Element Configuration
 | Element | Chord Length (mm) | Angle (°) |
 |---------|-------------------|------------|
-| 1 | 364035.4 | 1.6 |
-| 2 | 361089.3 | 0.4 |
-| 3 | 363843.9 | 0.1 |
-| 4 | 364945.7 | 1.0 |
+| 1 | 302156.5 | 1.1 |
+| 2 | 303368.1 | 1.6 |
+| 3 | 324130.4 | 0.0 |
+| 4 | 367386.7 | 1.4 |
 
 
 ---
@@ -52,13 +52,13 @@ Wing performance across Formula 1 operating speeds:
 
 | Speed (km/h) | Downforce (N) | Drag (N) | L/D Ratio | Flow Quality |
 |--------------|---------------|----------|-----------|---------------|
-| 50 | 7656193450.2 | 11675318486.5 | 0.65575885 | Good attachment |
-| 100 | 30624773800.8 | 46699134490.4 | 0.65578889 | Good attachment |
-| 150 | 68905741051.7 | 105070531021.9 | 0.65580463 | Good attachment |
-| 200 | 122499095203.0 | 186789087943.9 | 0.65581505 | Good attachment |
-| 250 | 191404836254.7 | 291854533025.8 | 0.65582273 | Good attachment |
-| 300 | 275622964206.8 | 420266667216.7 | 0.65582875 | Good attachment |
-| 350 | 375153479059.2 | 572025334945.3 | 0.65583368 | Good attachment |
+| 50 | 5743596298.9 | 5186247775.1 | 1.10746662 | Good attachment |
+| 100 | 22974385195.6 | 20743380800.4 | 1.10755259 | Good attachment |
+| 150 | 51692366690.1 | 46670708887.0 | 1.10759763 | Good attachment |
+| 200 | 91897540782.5 | 82967915811.2 | 1.10762745 | Good attachment |
+| 250 | 143589907472.6 | 129634796673.6 | 1.10764942 | Good attachment |
+| 300 | 206769466760.5 | 186671201654.9 | 1.10766666 | Good attachment |
+| 350 | 281436218646.3 | 254077013661.6 | 1.10768076 | Good attachment |
 
 
 ### Ground Effect Analysis
@@ -66,13 +66,13 @@ Performance variation with ride height changes:
 
 | Ground Clearance (mm) | Downforce (N) | Ground Effect Factor | Efficiency |
 |-----------------------|---------------|----------------------|------------|
-| 50 | 122502840199.3 | 1.80 | 0.65583902 |
-| 75 | 122499095203.0 | 1.80 | 0.65581505 |
-| 100 | 122495350206.7 | 1.80 | 0.65579108 |
-| 125 | 122491605210.4 | 1.80 | 0.65576711 |
-| 150 | 122487860214.1 | 1.80 | 0.65574314 |
-| 200 | 122480370221.5 | 1.80 | 0.65569520 |
-| 275 | 122469135232.6 | 1.80 | 0.65562329 |
+| 50 | 91900690068.2 | 1.80 | 1.10767283 |
+| 75 | 91897540782.5 | 1.80 | 1.10762745 |
+| 100 | 91894391496.7 | 1.80 | 1.10758206 |
+| 125 | 91891242210.9 | 1.80 | 1.10753668 |
+| 150 | 91888092925.2 | 1.80 | 1.10749130 |
+| 200 | 91881794353.6 | 1.80 | 1.10740054 |
+| 275 | 91872346496.3 | 1.80 | 1.10726440 |
 
 
 ### Wing Angle Sensitivity Analysis
@@ -80,15 +80,15 @@ Impact of setup changes and ride height variations:
 
 | Wing Angle (°) | Downforce (N) | Drag (N) | L/D Ratio | Stall Assessment |
 |----------------|---------------|----------|-----------|------------------|
-| -5 | 95212305800.1 | 181313414554.3 | 0.52512555 | Good attachment |
-| -2 | 111584379441.9 | 184570469025.6 | 0.60456247 | Good attachment |
-| 0 | 122499095203.0 | 186789087943.9 | 0.65581505 | Good attachment |
-| 2 | 133413810964.2 | 189045506278.7 | 0.70572326 | Good attachment |
-| 5 | 149785884605.9 | 192501007687.1 | 0.77810442 | Good attachment |
-| 8 | 166157958247.6 | 196041557782.8 | 0.84756498 | Good attachment |
-| 12 | 187987389769.9 | 200894589201.8 | 0.93575138 | Good attachment |
-| 15 | 204359463411.6 | 204633586234.6 | 0.99866042 | Moderate stall risk |
-| 20 | 231646252814.5 | 211054245038.8 | 1.09756737 | High stall risk |
+| -5 | 70810397852.9 | 79131564408.8 | 0.89484390 | Good attachment |
+| -2 | 83462683610.7 | 81410813645.3 | 1.02520390 | Good attachment |
+| 0 | 91897540782.5 | 82967915811.2 | 1.10762745 | Good attachment |
+| 2 | 100332397954.3 | 84555100116.9 | 1.18659191 | Good attachment |
+| 5 | 112984683712.0 | 86992280587.8 | 1.29878977 | Good attachment |
+| 8 | 125636969469.7 | 89497145873.4 | 1.40380979 | Good attachment |
+| 12 | 142506683813.3 | 92942253743.7 | 1.53328199 | Good attachment |
+| 15 | 155158969571.0 | 95605050263.7 | 1.62291604 | Moderate stall risk |
+| 20 | 176246112500.6 | 100193455163.0 | 1.75905814 | High stall risk |
 
 
 ---
@@ -102,10 +102,10 @@ Impact of setup changes and ride height variations:
 - **Geometry Validation:** Mesh bounds analysis and coordinate system determination
 
 ### Extracted Wing Parameters
-- **Wingspan:** 1765000 mm (from mesh bounds)
+- **Wingspan:** 1610000 mm (from mesh bounds)
 - **Element Count:** 4 (automatically detected)
 - **Chord Distribution:** Variable across 4 analyzed sections
-- **Reference Area:** 199414.2679 m² (integrated from cross-sections)
+- **Reference Area:** 118331.0108 m² (integrated from cross-sections)
 
 ### Analysis Parameters
 - **Air Density:** 1.225 kg/m³
@@ -119,12 +119,12 @@ Impact of setup changes and ride height variations:
 
 ### Aerodynamic Characteristics
 **Efficiency Performance:**
-- Peak L/D ratio of **0.66** achieved at 350 km/h
+- Peak L/D ratio of **1.11** achieved at 350 km/h
 - Ground effect provides up to **1.8x** performance enhancement
 - Multi-element design shows good efficiency across operating range
 
 **Downforce Generation:**
-- Maximum downforce: **375153479059 N** at high speeds
+- Maximum downforce: **281436218646 N** at high speeds
 - Ground effect optimum at **50 mm** ride height
 - Element interaction provides **15-20%** performance boost over single element
 
@@ -188,8 +188,8 @@ Your F1 front wing design demonstrates strong aerodynamic characteristics with e
 - Well-proportioned geometry with proper element sizing
 
 **Performance Highlights:**
-- Peak downforce of 375153479059N provides strong aerodynamic loading
-- L/D ratio of 0.66 indicates efficient design
+- Peak downforce of 281436218646N provides strong aerodynamic loading
+- L/D ratio of 1.11 indicates efficient design
 - Ground effect sweet spot at 50mm offers setup flexibility
 
 **Development Recommendations:**
@@ -202,4 +202,4 @@ This analysis provides a solid foundation for aerodynamic development and setup 
 ---
 
 **Analysis Generated by STL Wing CFD Analyzer**  
-*Geometry extracted from: errari_sf24_frontwing.stl*
+*Geometry extracted from: ferrari_sf24_frontwing_ideal.stl*
