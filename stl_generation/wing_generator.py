@@ -4,54 +4,54 @@ import math
 import os
 
 class F1FrontWingGenerator:
-    def __init__(self):
+    def __init__(self, max_width=1800, max_chord=400, wing_height_min=75, wing_height_max=275, main_wingspan=1750, main_chord_center=380, main_chord_tip=250, main_thickness=25, main_angle=8, num_elements=4, element_chords=[380, 180, 140, 120], element_gaps=[0, 50, 35, 25], element_angles=[8, 15, 22, 28], element_heights=[0, 45, 80, 110], flap_twist_angle=12, flap_camber=0.08, endplate_height=200, endplate_thickness=15, endplate_chord=350, endplate_rake_angle=3, spoon_width=250, spoon_depth=30, spoon_transition=150, resolution_span=40, resolution_chord=25, mesh_density=1.5, material="Carbon Fiber Composite", weight_estimate=3.5):
         """
         Ferrari SF24-style F1 Front Wing Generator
         All parameters based on F1 regulations and SF24 specifications
         """
         # F1 Regulation Parameters
-        self.max_width = 1800          # Maximum wing width (mm) - F1 regulation
-        self.max_chord = 400           # Maximum chord length (mm)
-        self.wing_height_min = 75      # Minimum height above reference plane (mm)
-        self.wing_height_max = 275     # Maximum height above reference plane (mm)
+        self.max_width = max_width         # Maximum wing width (mm) - F1 regulation
+        self.max_chord = max_chord           # Maximum chord length (mm)
+        self.wing_height_min = wing_height_min     # Minimum height above reference plane (mm)
+        self.wing_height_max = wing_height_max    # Maximum height above reference plane (mm)
         
         # Main Wing Parameters
-        self.main_wingspan = 1750      # Main wing span (mm)
-        self.main_chord_center = 380   # Center chord length (mm)
-        self.main_chord_tip = 250      # Tip chord length (mm)
-        self.main_thickness = 25       # Main plane thickness (mm)
-        self.main_angle = 8            # Main plane angle of attack (degrees)
+        self.main_wingspan = main_wingspan      # Main wing span (mm)
+        self.main_chord_center = main_chord_center   # Center chord length (mm)
+        self.main_chord_tip = main_chord_tip      # Tip chord length (mm)
+        self.main_thickness = main_thickness       # Main plane thickness (mm)
+        self.main_angle = main_angle            # Main plane angle of attack (degrees)
         
         # Wing Elements (4 elements as per F1 regulations)
-        self.num_elements = 4
-        self.element_chords = [380, 180, 140, 120]  # Chord for each element
-        self.element_gaps = [0, 50, 35, 25]         # Gap between elements
-        self.element_angles = [8, 15, 22, 28]       # Angle of attack for each element
-        self.element_heights = [0, 45, 80, 110]     # Vertical offset for each element
+        self.num_elements = num_elements
+        self.element_chords = element_chords  # Chord for each element
+        self.element_gaps = element_gaps         # Gap between elements
+        self.element_angles = element_angles       # Angle of attack for each element
+        self.element_heights = element_heights     # Vertical offset for each element
         
         # Flap Parameters (Upper elements)
-        self.flap_twist_angle = 12     # Additional twist at tips for outwash
-        self.flap_camber = 0.08        # Camber ratio for flaps
+        self.flap_twist_angle = flap_twist_angle     # Additional twist at tips for outwash
+        self.flap_camber = flap_camber        # Camber ratio for flaps
         
         # Endplate Parameters
-        self.endplate_height = 200     # Endplate height (mm)
-        self.endplate_thickness = 15   # Endplate thickness (mm)
-        self.endplate_chord = 350      # Endplate chord length (mm)
-        self.endplate_rake_angle = 3   # Endplate rake angle (degrees)
+        self.endplate_height = endplate_height     # Endplate height (mm)
+        self.endplate_thickness = endplate_thickness   # Endplate thickness (mm)
+        self.endplate_chord = endplate_chord      # Endplate chord length (mm)
+        self.endplate_rake_angle = endplate_rake_angle   # Endplate rake angle (degrees)
         
         # Spoon Shape Parameters (center section)
-        self.spoon_width = 250         # Width of center spoon section (mm)
-        self.spoon_depth = 30          # Depth of spoon curvature (mm)
-        self.spoon_transition = 150    # Transition zone width (mm)
+        self.spoon_width = spoon_width         # Width of center spoon section (mm)
+        self.spoon_depth = spoon_depth          # Depth of spoon curvature (mm)
+        self.spoon_transition = spoon_transition    # Transition zone width (mm)
         
         # Construction Parameters  
-        self.resolution_span = 40      # Points along wingspan
-        self.resolution_chord = 25     # Points along chord
-        self.mesh_density = 1.5        # Overall mesh density multiplier
+        self.resolution_span = resolution_span      # Points along wingspan
+        self.resolution_chord = resolution_chord     # Points along chord
+        self.mesh_density = mesh_density        # Overall mesh density multiplier
         
         # Material Properties (for reference)
-        self.material = "Carbon Fiber Composite"
-        self.weight_estimate = 3.5     # Estimated weight in kg
+        self.material = material
+        self.weight_estimate = weight_estimate    # Estimated weight in kg
         
     def create_naca_airfoil(self, chord, thickness_ratio=0.12, camber=0.02):
         """Create NACA 4-digit airfoil with camber"""
@@ -337,6 +337,50 @@ class F1FrontWingGenerator:
 # Run the generator with Ferrari SF24 specifications
 if __name__ == "__main__":
     # Create F1 wing generator
+    # # F1 Regulation Parameters
+    #     self.max_width = 1800          # Maximum wing width (mm) - F1 regulation
+    #     self.max_chord = 400           # Maximum chord length (mm)
+    #     self.wing_height_min = 75      # Minimum height above reference plane (mm)
+    #     self.wing_height_max = 275     # Maximum height above reference plane (mm)
+        
+    #     # Main Wing Parameters
+    #     self.main_wingspan = 1750      # Main wing span (mm)
+    #     self.main_chord_center = 380   # Center chord length (mm)
+    #     self.main_chord_tip = 250      # Tip chord length (mm)
+    #     self.main_thickness = 25       # Main plane thickness (mm)
+    #     self.main_angle = 8            # Main plane angle of attack (degrees)
+        
+    #     # Wing Elements (4 elements as per F1 regulations)
+    #     self.num_elements = 4
+    #     self.element_chords = [380, 180, 140, 120]  # Chord for each element
+    #     self.element_gaps = [0, 50, 35, 25]         # Gap between elements
+    #     self.element_angles = [8, 15, 22, 28]       # Angle of attack for each element
+    #     self.element_heights = [0, 45, 80, 110]     # Vertical offset for each element
+        
+    #     # Flap Parameters (Upper elements)
+    #     self.flap_twist_angle = 12     # Additional twist at tips for outwash
+    #     self.flap_camber = 0.08        # Camber ratio for flaps
+        
+    #     # Endplate Parameters
+    #     self.endplate_height = 200     # Endplate height (mm)
+    #     self.endplate_thickness = 15   # Endplate thickness (mm)
+    #     self.endplate_chord = 350      # Endplate chord length (mm)
+    #     self.endplate_rake_angle = 3   # Endplate rake angle (degrees)
+        
+    #     # Spoon Shape Parameters (center section)
+    #     self.spoon_width = 250         # Width of center spoon section (mm)
+    #     self.spoon_depth = 30          # Depth of spoon curvature (mm)
+    #     self.spoon_transition = 150    # Transition zone width (mm)
+        
+    #     # Construction Parameters  
+    #     self.resolution_span = 40      # Points along wingspan
+    #     self.resolution_chord = 25     # Points along chord
+    #     self.mesh_density = 1.5        # Overall mesh density multiplier
+        
+    #     # Material Properties (for reference)
+    #     self.material = "Carbon Fiber Composite"
+    #     self.weight_estimate = 3.5     # Estimated weight in kg
+        
     f1_wing = F1FrontWingGenerator()
     
     # Generate the complete wing
