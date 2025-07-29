@@ -911,7 +911,6 @@ IDEAL_F1_PARAMETERS = {
     "efficiency_factor": 0.92              # High efficiency
 }
 
-
 # Example usage
 if __name__ == "__main__":
     print("Ultra-Realistic F1 Front Wing Generator")

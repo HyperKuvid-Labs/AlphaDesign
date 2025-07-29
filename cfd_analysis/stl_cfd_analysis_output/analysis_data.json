@@ -3,173 +3,173 @@
         {
             "speed_kmh": 50,
             "speed_ms": 13.88888888888889,
-            "downforce_N": 5743596298.90408,
-            "drag_N": 5186247775.126492,
-            "efficiency": 1.1074666209452353,
+            "downforce_N": 1478701472.1672661,
+            "drag_N": 119477210.48161733,
+            "efficiency": 12.376431172158794,
             "flow_quality": "Good attachment"
         },
         {
             "speed_kmh": 100,
             "speed_ms": 27.77777777777778,
-            "downforce_N": 22974385195.61632,
-            "drag_N": 20743380800.428123,
-            "efficiency": 1.107552593121279,
+            "downforce_N": 5914805888.6690645,
+            "drag_N": 477362858.3424858,
+            "efficiency": 12.390586710509146,
             "flow_quality": "Good attachment"
         },
         {
             "speed_kmh": 150,
             "speed_ms": 41.666666666666664,
-            "downforce_N": 51692366690.13671,
-            "drag_N": 46670708887.01885,
-            "efficiency": 1.1075976329237758,
+            "downforce_N": 13308313249.505392,
+            "drag_N": 1073422930.1792624,
+            "efficiency": 12.39801468306895,
             "flow_quality": "Good attachment"
         },
         {
             "speed_kmh": 200,
             "speed_ms": 55.55555555555556,
-            "downforce_N": 91897540782.46529,
-            "drag_N": 82967915811.15314,
-            "efficiency": 1.1076274471162715,
+            "downforce_N": 23659223554.676258,
+            "drag_N": 1907550208.1035936,
+            "efficiency": 12.402936213247706,
             "flow_quality": "Good attachment"
         },
         {
             "speed_kmh": 250,
             "speed_ms": 69.44444444444444,
-            "downforce_N": 143589907472.60202,
-            "drag_N": 129634796673.56967,
-            "efficiency": 1.1076494209665972,
+            "downforce_N": 36967536804.181656,
+            "drag_N": 2979675219.5776877,
+            "efficiency": 12.406565843582475,
             "flow_quality": "Good attachment"
         },
         {
             "speed_kmh": 300,
             "speed_ms": 83.33333333333333,
-            "downforce_N": 206769466760.54684,
-            "drag_N": 186671201654.88086,
-            "efficiency": 1.107666661635488,
+            "downforce_N": 53233252998.02157,
+            "drag_N": 4289747167.2829275,
+            "efficiency": 12.409415035930625,
             "flow_quality": "Good attachment"
         },
         {
             "speed_kmh": 350,
             "speed_ms": 97.22222222222221,
-            "downforce_N": 281436218646.29987,
-            "drag_N": 254077013661.60745,
-            "efficiency": 1.1076807562809707,
+            "downforce_N": 72456372136.19603,
+            "drag_N": 5837726349.850285,
+            "efficiency": 12.41174522304463,
             "flow_quality": "Good attachment"
         }
     ],
     "ground_clearance_sweep": [
         {
             "ground_clearance_mm": 50,
-            "downforce_N": 91900690068.23434,
-            "drag_N": 82967359587.23784,
-            "efficiency": 1.107672830923387,
-            "ground_effect_factor": 1.7998766423648913
+            "downforce_N": 23660627382.43445,
+            "drag_N": 1907528067.9020143,
+            "efficiency": 12.403816111842316,
+            "ground_effect_factor": 1.799786430840604
         },
         {
             "ground_clearance_mm": 75,
-            "downforce_N": 91897540782.46529,
-            "drag_N": 82967915811.15314,
-            "efficiency": 1.1076274471162715,
-            "ground_effect_factor": 1.7998149635473368
+            "downforce_N": 23659223554.676258,
+            "drag_N": 1907550208.1035936,
+            "efficiency": 12.402936213247706,
+            "ground_effect_factor": 1.799679646260906
         },
         {
             "ground_clearance_mm": 100,
-            "downforce_N": 91894391496.69626,
-            "drag_N": 82968472035.06839,
-            "efficiency": 1.1075820639176668,
-            "ground_effect_factor": 1.7997532847297826
+            "downforce_N": 23657819726.91807,
+            "drag_N": 1907572348.3051727,
+            "efficiency": 12.40205633507815,
+            "ground_effect_factor": 1.799572861681208
         },
         {
             "ground_clearance_mm": 125,
-            "downforce_N": 91891242210.92722,
-            "drag_N": 82969028258.98366,
-            "efficiency": 1.107536681327559,
-            "ground_effect_factor": 1.799691605912228
+            "downforce_N": 23656415899.15988,
+            "drag_N": 1907594488.5067525,
+            "efficiency": 12.40117647733293,
+            "ground_effect_factor": 1.7994660771015099
         },
         {
             "ground_clearance_mm": 150,
-            "downforce_N": 91888092925.15816,
-            "drag_N": 82969584482.89893,
-            "efficiency": 1.1074912993459363,
-            "ground_effect_factor": 1.7996299270946738
+            "downforce_N": 23655012071.40169,
+            "drag_N": 1907616628.7083316,
+            "efficiency": 12.400296640011344,
+            "ground_effect_factor": 1.7993592925218118
         },
         {
             "ground_clearance_mm": 200,
-            "downforce_N": 91881794353.62009,
-            "drag_N": 82970696930.72948,
-            "efficiency": 1.1074005372080977,
-            "ground_effect_factor": 1.799506569459565
+            "downforce_N": 23652204415.88532,
+            "drag_N": 1907660909.1114898,
+            "efficiency": 12.39853702663622,
+            "ground_effect_factor": 1.799145723362416
         },
         {
             "ground_clearance_mm": 275,
-            "downforce_N": 91872346496.31293,
-            "drag_N": 82972365602.47528,
-            "efficiency": 1.1072643985646726,
-            "ground_effect_factor": 1.799321533006902
+            "downforce_N": 23647992932.610752,
+            "drag_N": 1907727329.7162275,
+            "efficiency": 12.395897759732973,
+            "ground_effect_factor": 1.7988253696233218
         }
     ],
     "angle_sweep": [
         {
             "wing_angle_deg": -5,
-            "downforce_N": 70810397852.93906,
-            "drag_N": 79131564408.77856,
-            "efficiency": 0.8948439018233741,
+            "downforce_N": 16651941170.556627,
+            "drag_N": 1506464143.870384,
+            "efficiency": 11.053659151670693,
             "stall_risk": "Good attachment"
         },
         {
             "wing_angle_deg": -2,
-            "downforce_N": 83462683610.6548,
-            "drag_N": 81410813645.29521,
-            "efficiency": 1.0252038995003727,
+            "downforce_N": 20856310601.028404,
+            "drag_N": 1739588582.079767,
+            "efficiency": 11.989220219009267,
             "stall_risk": "Good attachment"
         },
         {
             "wing_angle_deg": 0,
-            "downforce_N": 91897540782.46529,
-            "drag_N": 82967915811.15314,
-            "efficiency": 1.1076274471162715,
+            "downforce_N": 23659223554.676258,
+            "drag_N": 1907550208.1035936,
+            "efficiency": 12.402936213247706,
             "stall_risk": "Good attachment"
         },
         {
             "wing_angle_deg": 2,
-            "downforce_N": 100332397954.27582,
-            "drag_N": 84555100116.8885,
-            "efficiency": 1.1865919124402533,
+            "downforce_N": 26462136508.324104,
+            "drag_N": 2085548101.2348118,
+            "efficiency": 12.688336697991476,
             "stall_risk": "Good attachment"
         },
         {
             "wing_angle_deg": 5,
-            "downforce_N": 112984683711.99155,
-            "drag_N": 86992280587.76176,
-            "efficiency": 1.2987897655816423,
+            "downforce_N": 30666505938.795883,
+            "drag_N": 2371362941.7579947,
+            "efficiency": 12.932017026487504,
             "stall_risk": "Good attachment"
         },
         {
             "wing_angle_deg": 8,
-            "downforce_N": 125636969469.70729,
-            "drag_N": 89497145873.35928,
-            "efficiency": 1.4038097890572596,
+            "downforce_N": 34870875369.26766,
+            "drag_N": 2679759383.272806,
+            "efficiency": 13.012688970111807,
             "stall_risk": "Good attachment"
         },
         {
             "wing_angle_deg": 12,
-            "downforce_N": 142506683813.32828,
-            "drag_N": 92942253743.72704,
-            "efficiency": 1.533281990409518,
-            "stall_risk": "Good attachment"
-        },
-        {
-            "wing_angle_deg": 15,
-            "downforce_N": 155158969571.04404,
-            "drag_N": 95605050263.68118,
-            "efficiency": 1.6229160399279288,
+            "downforce_N": 40476701276.56337,
+            "drag_N": 3126081573.5017548,
+            "efficiency": 12.94806303829827,
             "stall_risk": "Moderate stall risk"
         },
         {
+            "wing_angle_deg": 15,
+            "downforce_N": 44681070707.03515,
+            "drag_N": 3487168417.330366,
+            "efficiency": 12.812994773920657,
+            "stall_risk": "High stall risk"
+        },
+        {
             "wing_angle_deg": 20,
-            "downforce_N": 176246112500.5703,
-            "drag_N": 100193455162.99197,
-            "efficiency": 1.7590581362211528,
+            "downforce_N": 51688353091.15478,
+            "drag_N": 4139161159.2483387,
+            "efficiency": 12.487639669613941,
             "stall_risk": "High stall risk"
         }
     ],
@@ -177,32 +177,32 @@
         "max_efficiency_speed": 350,
         "max_downforce_speed": 350,
         "optimal_ground_clearance": 50,
-        "optimal_wing_angle": 20
+        "optimal_wing_angle": 8
     },
     "critical_conditions": {
-        "stall_onset_angle": 15,
-        "max_ground_effect": 1.7998766423648913,
+        "stall_onset_angle": 12,
+        "max_ground_effect": 1.799786430840604,
         "min_safe_clearance": 50
     },
     "geometry_summary": {
-        "stl_file": "ferrari_sf24_frontwing_ideal.stl",
-        "mesh_vertices": 8595,
-        "mesh_faces": 17064,
-        "wingspan_mm": 1610000.0,
-        "reference_area_m2": 118331.0108390784,
+        "stl_file": "ideal_f1_frontwing.stl",
+        "mesh_vertices": 26904,
+        "mesh_faces": 50274,
+        "wingspan_mm": 2096000.0,
+        "reference_area_m2": 142534.7227992986,
         "num_elements": 4,
         "chord_lengths_mm": [
-            302156.5239429474,
-            303368.1082725525,
-            324130.4130554199,
-            367386.6810798645
+            328091.99810028076,
+            139033.06555747986,
+            143706.23397827148,
+            138340.5418395996
         ],
         "element_angles_deg": [
-            1.1147084821558928,
-            1.574007590802916,
-            0.011149751766652394,
-            1.3949570797106072
+            4.058521461773844,
+            3.904500488918077,
+            0.05320538406027519,
+            5.204593016664937
         ],
-        "cross_sections_extracted": 4
+        "cross_sections_extracted": 3
     }
 }
