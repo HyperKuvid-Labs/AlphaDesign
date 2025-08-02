@@ -4,14 +4,14 @@ import numpy as np
 
 class ParamterTweaker:
     def __init__(self, param_bounds=None, mod_scale=0.1):
-        self.param_bounds = param_bounds
-        self.mod_scale = mod_scale
+        self.param_bounds = param_bounds #so this defines the range of the parameters
+        self.mod_scale = mod_scale #this is like the learning rate or low pass layer on how much to modify the parameters
 
     def apply_neural_tweaks(self, current_params, policy_output, exploration=True):
-        mod_d = torch.tanh(policy_output)
+        mod_d = torch.tanh(policy_output) 
 
-        param_changes = mod_d * self.mod_scale
-        modified_params = current_params + param_changes
+        param_changes = mod_d * self.mod_scale #this is the amount by which the parameters are modified
+        modified_params = current_params + param_changes #this is the new parameters changed according to the policy output
 
         if exploration:
             noise = torch.randn_like(modified_params) * 0.01

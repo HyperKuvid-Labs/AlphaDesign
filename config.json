@@ -1,0 +1,42 @@
+{
+  "max_generations": 200,
+  "population_size": 30,
+  "neural_network_enabled": true,
+  "save_frequency": 10,
+  "max_runtime_hours": 168,
+  
+  "early_stopping": {
+    "patience": 25,
+    "min_delta": 0.001,
+    "monitor": "fitness",
+    "stagnation_threshold": 15,
+    "convergence_threshold": 0.0005
+  },
+  
+  "neural_network": {
+    "learning_rate": 0.0005,
+    "batch_size": 16,
+    "training_frequency": 5,
+    "save_best_model": true
+  },
+  
+  "genetic_algorithm": {
+    "crossover_rate": 0.8,
+    "mutation_rate": 0.12,
+    "elite_ratio": 0.25,
+    "tournament_size": 4
+  },
+  
+  "cfd_analysis": {
+    "enabled": true,
+    "parallel_processes": 3,
+    "timeout_seconds": 450
+  },
+  
+  "output": {
+    "save_all_stl": false,
+    "save_best_only": true,
+    "generate_reports": true,
+    "create_visualizations": false
+  }
+}

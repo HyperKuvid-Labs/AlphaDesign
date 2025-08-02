@@ -13,13 +13,11 @@ class ValueHead(nn.Module):
         super(ValueHead, self).__init__()
         self.fc1 = nn.Linear(p_size, p_size*4)
         self.fc2 = nn.Linear(p_size*4, p_size*2)
-        self.fc3 = nn.Linear(p_size*2, p_size)
-        self.fc4 = nn.Linear(p_size, 1)
+        self.fc3 = nn.Linear(p_size*2, 1)  
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-        x = self.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = self.relu(self.fc1(x))    
+        x = self.relu(self.fc2(x))    
+        x = self.fc3(x)              
         return x

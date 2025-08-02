@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from policy_head import PolicyHead
-from value_head import ValueHead
+from .policy_head import PolicyHead
+from .value_head import ValueHead
 
 class NeuralNetworkForwardPass(nn.Module):
     def __init__(self, param_count):
