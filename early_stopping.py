@@ -2,7 +2,7 @@ import numpy as np
 from typing import Optional, List
 
 class EarlyStoppingManager:
-    def __init__(self, patience: int = 10, min_delta: float = 0.01, 
+    def __init__(self, patience: int = 100, min_delta: float = 0.01, 
                  restore_best_weights: bool = True, monitor: str = 'fitness'):
         
         # patience: no. of generations to wait for improvement
@@ -21,7 +21,7 @@ class EarlyStoppingManager:
         self.best_weights = None
         self.score_history = []
         
-        self.stagnation_threshold = 5  # consecutive generations with same score
+        self.stagnation_threshold = 100 # consecutive generations with same score
         self.convergence_threshold = 0.001  # population diversity threshold
         
     def should_stop(self, current_score: float, additional_metrics: Optional[dict] = None):

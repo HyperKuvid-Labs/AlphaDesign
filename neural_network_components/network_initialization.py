@@ -10,7 +10,7 @@ class NetworkInitializer:
             if isinstance(module, nn.Linear):
                 nn.init.kaiming_uniform_(module.weight, nonlinearity='relu')
                 if module.bias is not None:
-                    nn.init.zeros_(module.bias, 0)
+                    nn.init.zeros_(module.bias)
     
     @staticmethod
     def setup_network(design_param_count, device="cpu"):

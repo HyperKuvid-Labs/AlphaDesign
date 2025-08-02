@@ -37,8 +37,8 @@ def load_base_parameters(params_path: str) -> F1FrontWingParams:
         wall_thickness_details=2.0, minimum_radius=0.4, mesh_resolution_aero=0.4,
         mesh_resolution_structural=0.6, resolution_span=40, resolution_chord=25,
         mesh_density=1.5, surface_smoothing=True, material="Standard Carbon Fiber",
-        density=1600, weight_estimate=4.0, target_downforce=1000, target_drag=180,
-        efficiency_factor=0.75
+        density=1600, weight_estimate=4.0, target_downforce=4000, target_drag=40,
+        efficiency_factor=1.0   
     )
 
 def main():

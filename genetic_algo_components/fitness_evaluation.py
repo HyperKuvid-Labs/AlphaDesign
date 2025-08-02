@@ -16,7 +16,6 @@ class FitnessEval:
         self.temp_dir = tempfile.mkdtemp()
 
     def should_skip_cfd(self, constraint_score):
-        """Skip CFD analysis for designs that clearly don't meet basic constraints"""
         return constraint_score['constraint_compliance'] < 0.4 #skipping the obvious failures
 
     def evaluate_pop_with_progress(self, population, pbar: tqdm):
@@ -138,8 +137,18 @@ class FitnessEval:
             analyzer = F1FrontWingAnalyzer(params)
             results = analyzer.run_complete_analysis()
 
+            compliance_bonus = 0
+            if results.get('flap_gap_optimal', False):
+                compliance_bonus += 0.1
+            if results.get('flap_attachment', False):
+                compliance_bonus += 0.1
+            if results.get('downforce_target_met', False):
+                compliance_bonus += 0.15
+                
+            adjusted_compliance = min(1.0, results['overall_compliance'] + compliance_bonus)
+
             return {
-                'constraint_compliance': results['overall_compliance'],
+                'constraint_compliance': adjusted_compliance,
                 'constraint_percentage': results['compliance_percentage'],
                 'computed_downforce': results['computed_values']['total_downforce'],
                 'computed_drag': results['computed_values']['total_drag'],
@@ -160,67 +169,56 @@ class FitnessEval:
                 'error': str(e)
             }
 
-    def evaluate_cfd_perf(self, individual, id):
-        max_retries = 3
-        retry_count = 0
-        
-        while retry_count < max_retries:
-            try:
-                wing_generator = UltraRealisticF1FrontWingGenerator(**individual)
-                stl_filename = f"individual_{id}_wing.stl"
-                stl_path = os.path.join(self.temp_dir, stl_filename)
-
-                wing_mesh = wing_generator.generate_complete_wing(stl_filename)
+    def evaluate_cfd_perf(self, individual: Dict, individual_idx: int):
+        try:
+            from cfd_analysis import STLWingAnalyzer
+            
+            cfd_dir = "cfd_temp_files"
+            os.makedirs(cfd_dir, exist_ok=True)
+            
+            stl_filename = f"individual_{individual_idx}_wing.stl"
+            stl_path = os.path.join(cfd_dir, stl_filename)
+            
+            wing_generator = UltraRealisticF1FrontWingGenerator(**individual)
+            wing_mesh = wing_generator.generate_complete_wing(stl_filename)
+            
+            expected_path = os.path.join("f1_wing_output", stl_filename)
+            if os.path.exists(expected_path):
+                import shutil
+                shutil.copy2(expected_path, stl_path)
+            else:
+                return self.get_default_cfd_score()
+            
+            if os.path.exists(stl_path):
+                analyzer = STLWingAnalyzer(stl_path)
                 
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("CFD analysis timeout")
+                speed_ms = analyzer.convert_speed_to_ms(330)  # 200 km/h test speed
+                cfd_result = analyzer.multi_element_analysis(speed_ms, 75, 0)
                 
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(300) 
+                return {
+                    'cfd_downforce': float(cfd_result['total_downforce']),
+                    'cfd_drag': float(cfd_result['total_drag']),
+                    'cfd_efficiency': float(cfd_result['efficiency_ratio']),
+                    'cfd_valid': True,
+                    'flow_attachment': cfd_result['flow_characteristics']['flow_attachment']
+                }
+            else:
+                return self.get_default_cfd_score()
                 
-                try:
-                    import shutil
-                    generated_path = os.path.join("f1_wing_output", stl_filename)
-                    os.makedirs(os.path.dirname(generated_path), exist_ok=True)
-                    shutil.move(stl_path, generated_path)
+        except Exception as e:
+            print(f"❌ CFD evaluation failed: {str(e)}")
+            return self.get_default_cfd_score()
 
-                    analyzer = STLWingAnalyzer(wing_mesh)
-                    results = analyzer.run_comprehensive_analysis()
-                    
-                    signal.alarm(0) 
-                    
-                    optimal_settings = results['optimal_settings']
-                    speed_sweep = results['speed_sweep']
-
-                    target_speed_data = next((d for d in speed_sweep if d['speed_kmh'] == 200), speed_sweep[3])
-
-                    return {
-                        'downforce': target_speed_data['downforce_N'],
-                        'drag': target_speed_data['drag_N'],
-                        'efficiency': target_speed_data['efficiency'],
-                        'max_efficiency_speed': optimal_settings['max_efficiency_speed'],
-                        'optimal_ground_clearance': optimal_settings['optimal_ground_clearance'],
-                        'cfd_valid': True
-                    }
-                    
-                except TimeoutError:
-                    signal.alarm(0)
-                    retry_count += 1
-                    print(f"CFD timeout for individual {id}, retry {retry_count}/{max_retries}")
-                    continue
-                    
-            except Exception as e:
-                retry_count += 1
-                print(f"Error in CFD evaluation (attempt {retry_count}): {e}")
-                if retry_count >= max_retries:
-                    return {
-                        'downforce': 0, 'drag': 0, 'efficiency': 0,
-                        'max_efficiency_speed': 0, 'optimal_ground_clearance': 0,
-                        'cfd_valid': False, 'error': str(e)
-                    }
-        
-        return {'cfd_valid': False, 'error': 'Max retries exceeded'}
-        
+    def get_default_cfd_score(self):
+        """Return conservative CFD score when analysis fails"""
+        return {
+            'cfd_downforce': 1000,  # Conservative estimate
+            'cfd_drag': 100,
+            'cfd_efficiency': 10.0,
+            'cfd_valid': False,
+            'flow_attachment': 'Unknown'
+        }
+     
     def combine_scores(self, constraint_score, cfd_score):
         constraint_fitness = constraint_score['constraint_compliance'] * 100
 

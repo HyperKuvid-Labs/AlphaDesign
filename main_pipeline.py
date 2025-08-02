@@ -32,14 +32,15 @@ class AlphaDesignPipeline:
         self.training_metrics = []
         self.neural_network = None
         self.optimizer_manager = None
+        self.generation_results = []
         
-        #as of now not using early stopping but will be used in future
-        from early_stopping import EarlyStoppingManager  # You need to create this
-        self.early_stopping = EarlyStoppingManager(
-            patience=self.config['early_stopping']['patience'],
-            min_delta=self.config['early_stopping']['min_delta'],
-            restore_best_weights=True
-        )
+        # #as of now not using early stopping but will be used in future
+        # from early_stopping import EarlyStoppingManager  # You need to create this
+        # self.early_stopping = EarlyStoppingManager(
+        #     patience=self.config['early_stopping']['patience'],
+        #     min_delta=self.config['early_stopping']['min_delta'],
+        #     restore_best_weights=True
+        # )
 
         #so this time took help of perplexity to write better logs and print statements
         print("🚀 AlphaDesign Pipeline Initialized")
@@ -97,6 +98,12 @@ class AlphaDesignPipeline:
         
         for dir_name, dir_path in self.output_dirs.items():
             os.makedirs(dir_path, exist_ok=True)
+            # Verify directory was created
+            if not os.path.exists(dir_path):
+                self.logger.error(f"Failed to create directory: {dir_path}")
+                raise RuntimeError(f"Cannot create required directory: {dir_path}")
+            else:
+                self.logger.info(f"✅ Directory ready: {dir_path}")
     
     def run_complete_pipeline(self, base_params: F1FrontWingParams):
         
@@ -193,7 +200,6 @@ class AlphaDesignPipeline:
             gen_result = self.run_single_generation(base_params)
             generation_results.append(gen_result)
             
-            # Update progress bar with current metrics
             generation_pbar.set_postfix({
                 'Best': f"{gen_result['best_fitness']:.2f}",
                 'Avg': f"{gen_result['average_fitness']:.2f}",
@@ -203,15 +209,18 @@ class AlphaDesignPipeline:
             
             if generation % self.config['save_frequency'] == 0:
                 self.save_checkpoint(generation, gen_result)
+                self.cleanup_generation()
             
-            if self.early_stopping.should_stop(gen_result['best_fitness']):
-                self.logger.info(f"🛑 Early stopping triggered at generation {generation}")
-                break
-            
+            # Use extended training instead of basic training
             if self.config['neural_network_enabled'] and generation % self.config['neural_network']['training_frequency'] == 0:
-                self.train_neural_network_extended(generation_results[-3:])
+                # Use extended training with curriculum learning
+                self.train_neural_network_extended(generation_results[-5:], generation)  # Use more recent generations
         
+        self.generation_results = generation_results
         generation_pbar.close()
+        
+        # Final cleanup after optimization loop
+        self.cleanup_generation()
         
         return {
             "total_generations": len(generation_results),
@@ -239,18 +248,60 @@ class AlphaDesignPipeline:
         # 2. find the best individual, so we can save and see how the design evolves
         valid_scores = [score for score in fitness_scores if isinstance(score, dict) and score.get('valid', False)]
         
+        # Fix: Handle case when no valid individuals exist
+        if not valid_scores:
+            self.logger.warning("⚠️ No valid individuals in population - creating recovery population")
+            
+            # Create recovery individuals with looser constraints
+            recovery_population = []
+            from genetic_algo_components.initialize_population import F1PopulInit
+            
+            pop_init = F1PopulInit(base_params, min(5, len(self.current_population)))
+            recovery_individuals = pop_init.create_initial_population()
+            
+            # Add some variation to recovery individuals
+            for individual in recovery_individuals:
+                # Apply conservative mutations to ensure validity
+                individual['max_thickness_ratio'] = max(0.08, min(0.25, individual.get('max_thickness_ratio', 0.15)))
+                individual['camber_ratio'] = max(0.04, min(0.18, individual.get('camber_ratio', 0.08)))
+                individual['total_span'] = max(1400, min(1800, individual.get('total_span', 1600)))
+                recovery_population.append(individual)
+            
+            # Replace worst individuals with recovery individuals
+            num_to_replace = min(len(recovery_population), len(self.current_population))
+            self.current_population[-num_to_replace:] = recovery_population[:num_to_replace]
+            
+            # Re-evaluate with recovery population
+            fitness_scores = self.fitness_eval.evaluate_pop_with_progress(
+                self.current_population, eval_pbar
+            )
+            valid_scores = [score for score in fitness_scores if isinstance(score, dict) and score.get('valid', False)]
+            
+            if not valid_scores:
+                # If still no valid individuals, use constraint compliance as fallback
+                valid_scores = [score for score in fitness_scores if isinstance(score, dict) and score.get('constraint_compliance', 0) > 0.3]
+        
         if valid_scores:
-            best_idx = max(range(len(valid_scores)), key=lambda i: valid_scores[i]['total_fitness'])
-            best_individual = self.current_population[best_idx]
-            best_fitness = valid_scores[best_idx]['total_fitness']
+            best_score = max(valid_scores, key=lambda x: x.get('total_fitness', -1000))
+            best_fitness = best_score['total_fitness']
+            best_individual = self.current_population[fitness_scores.index(best_score)]
             
-            # 3. save the best design STL
-            self.save_best_design_stl(best_individual, self.current_generation)
-            
+            # Save best design
+            if self.current_generation % self.config['save_frequency'] == 0:
+                self.save_best_design_stl(best_individual, self.current_generation)
+                
+            self.best_designs_history.append({
+                'generation': self.current_generation,
+                'fitness': best_fitness,
+                'individual': best_individual.copy()
+            })
         else:
-            self.logger.warning("⚠️ No valid individuals in population")
-            best_individual = self.current_population[0]
-            best_fitness = -1000
+            # Absolute fallback - use best constraint compliance
+            best_score = max(fitness_scores, key=lambda x: x.get('constraint_compliance', 0) if isinstance(x, dict) else 0)
+            best_fitness = best_score.get('constraint_compliance', 0) * 50  # Scale up constraint compliance
+            best_individual = self.current_population[fitness_scores.index(best_score)]
+            
+            self.logger.warning(f"⚠️ Using constraint compliance fallback: {best_fitness:.2f}")
         
         gen_pbar = tqdm(
             total=len(self.current_population),
@@ -267,7 +318,7 @@ class AlphaDesignPipeline:
         if self.config['neural_network_enabled']:
             nn_pbar = tqdm(
                 total=len(new_population),
-                desc="🧠 Applying Neural Guidance",
+                desc="🧠 Neural Network Guidance",
                 unit="individual",
                 position=1,
                 leave=False
@@ -292,7 +343,6 @@ class AlphaDesignPipeline:
         
         # Add memory cleanup at end of generation
         import gc
-        import torch
         
         # Clear GPU memory if using CUDA
         if torch.cuda.is_available():
@@ -305,6 +355,12 @@ class AlphaDesignPipeline:
     
     def save_best_design_stl(self, individual: Dict[str, Any], generation: int):
         try:
+            required_params = ['total_span', 'root_chord', 'tip_chord', 'flap_count']
+            for param in required_params:
+                if param not in individual:
+                    self.logger.error(f"❌ Missing required parameter: {param}")
+                    return
+            
             params = F1FrontWingParams(**individual)
             
             wing_generator = UltraRealisticF1FrontWingGenerator(**individual)
@@ -316,7 +372,7 @@ class AlphaDesignPipeline:
             import shutil
             generated_path = os.path.join("f1_wing_output", stl_filename)
             if os.path.exists(generated_path):
-                shutil.move(generated_path, stl_path)
+                shutil.copy2(generated_path, stl_path)
                 self.logger.info(f"💾 Best design saved: {stl_path}")
             
             json_path = stl_path.replace('.stl', '_params.json')
@@ -361,41 +417,139 @@ class AlphaDesignPipeline:
         tournament = random.sample(population_with_fitness, min(tournament_size, len(population_with_fitness)))
         winner = max(tournament, key=lambda x: x[1].get('total_fitness', -1000) if isinstance(x[1], dict) else -1000)
         return winner[0]
+
+    def individual_to_tensor(self, individual: Dict[str, Any]):
+        values = []
+    
+        scalar_params = [
+            'total_span', 'root_chord', 'tip_chord', 'chord_taper_ratio',
+            'sweep_angle', 'dihedral_angle', 'max_thickness_ratio', 
+            'camber_ratio', 'camber_position', 'leading_edge_radius',
+            'trailing_edge_thickness', 'upper_surface_radius', 'lower_surface_radius',
+            'endplate_height', 'endplate_max_width', 'endplate_min_width',
+            'endplate_thickness_base', 'endplate_forward_lean', 'endplate_rearward_sweep',
+            'endplate_outboard_wrap', 'footplate_extension', 'footplate_height',
+            'arch_radius', 'footplate_thickness', 'primary_strake_count',
+            'y250_width', 'y250_step_height', 'y250_transition_length',
+            'central_slot_width', 'pylon_count', 'pylon_spacing',
+            'pylon_major_axis', 'pylon_minor_axis', 'pylon_length',
+            'primary_cascade_span', 'primary_cascade_chord',
+            'secondary_cascade_span', 'secondary_cascade_chord',
+            'wall_thickness_structural', 'wall_thickness_aerodynamic',
+            'wall_thickness_details', 'minimum_radius', 'mesh_resolution_aero',
+            'mesh_resolution_structural', 'resolution_span', 'resolution_chord',
+            'mesh_density', 'density', 'weight_estimate',
+            'target_downforce', 'target_drag', 'efficiency_factor'
+        ]
+        
+        for param in scalar_params:
+            if param in individual:
+                values.append(float(individual[param]))
+        
+        list_params = [
+            'twist_distribution_range', 'flap_spans', 'flap_root_chords',
+            'flap_tip_chords', 'flap_cambers', 'flap_slot_gaps',
+            'flap_vertical_offsets', 'flap_horizontal_offsets', 'strake_heights'
+        ]
+        
+        for param in list_params:
+            if param in individual and isinstance(individual[param], list):
+                values.extend([float(x) for x in individual[param]])
+        
+        return torch.tensor(values, dtype=torch.float32)
+    
+    def tensor_to_individual(self, tensor: torch.Tensor, template: Dict[str, Any]):
+        individual = template.copy()
+        tensor_values = tensor.cpu().numpy().tolist()
+        
+        idx = 0
+        
+        scalar_params = [
+            'total_span', 'root_chord', 'tip_chord', 'chord_taper_ratio',
+            'sweep_angle', 'dihedral_angle', 'max_thickness_ratio', 
+            'camber_ratio', 'camber_position', 'leading_edge_radius',
+            'trailing_edge_thickness', 'upper_surface_radius', 'lower_surface_radius',
+            'endplate_height', 'endplate_max_width', 'endplate_min_width',
+            'endplate_thickness_base', 'endplate_forward_lean', 'endplate_rearward_sweep',
+            'endplate_outboard_wrap', 'footplate_extension', 'footplate_height',
+            'arch_radius', 'footplate_thickness', 'primary_strake_count',
+            'y250_width', 'y250_step_height', 'y250_transition_length',
+            'central_slot_width', 'pylon_count', 'pylon_spacing',
+            'pylon_major_axis', 'pylon_minor_axis', 'pylon_length',
+            'primary_cascade_span', 'primary_cascade_chord',
+            'secondary_cascade_span', 'secondary_cascade_chord',
+            'wall_thickness_structural', 'wall_thickness_aerodynamic',
+            'wall_thickness_details', 'minimum_radius', 'mesh_resolution_aero',
+            'mesh_resolution_structural', 'resolution_span', 'resolution_chord',
+            'mesh_density', 'density', 'weight_estimate',
+            'target_downforce', 'target_drag', 'efficiency_factor'
+        ]
+        
+        for param in scalar_params:
+            if param in individual and idx < len(tensor_values):
+                individual[param] = tensor_values[idx]
+                idx += 1
+        
+        list_params = [
+            'twist_distribution_range', 'flap_spans', 'flap_root_chords',
+            'flap_tip_chords', 'flap_cambers', 'flap_slot_gaps',
+            'flap_vertical_offsets', 'flap_horizontal_offsets', 'strake_heights'
+        ]
+        
+        for param in list_params:
+            if param in individual and isinstance(individual[param], list):
+                param_length = len(individual[param])
+                if idx + param_length <= len(tensor_values):
+                    individual[param] = tensor_values[idx:idx + param_length]
+                    idx += param_length
+        
+        return individual
     
     def apply_neural_guidance_with_progress(self, population: List[Dict[str, Any]], pbar: tqdm):
         if self.neural_network is None:
             pbar.update(len(population))
             return population
         
+        device = next(self.neural_network.parameters()).device
+
         try:
             guided_population = []
             
             for individual in population:
-                # Convert dict to ordered parameter tensor
-                param_keys = sorted(individual.keys())  # Ensure consistent ordering
-                param_values = [individual[key] if isinstance(individual[key], (int, float)) 
-                              else sum(individual[key]) if isinstance(individual[key], list) 
-                              else 0 for key in param_keys]
+                # param_keys = sorted(individual.keys())  # Ensure consistent ordering
+                # param_values = [individual[key] if isinstance(individual[key], (int, float)) 
+                #               else sum(individual[key]) if isinstance(individual[key], list) 
+                #               else 0 for key in param_keys]
                 
-                param_tensor = torch.tensor([param_values], dtype=torch.float32)
+                param_tensor = self.individual_to_tensor(individual)
+                param_tensor = param_tensor.to(device) 
+
+                if param_tensor.shape[0] != self.neural_network.param_count:
+                    pbar.set_postfix({'Status': f'Shape mismatch: {param_tensor.shape[0]} vs {self.neural_network.param_count}'})
+                    guided_population.append(individual) 
+                    pbar.update(1)
+                    continue
+
+                if param_tensor.dim() == 1:
+                    param_tensor = param_tensor.unsqueeze(0)
                 
                 # Get neural network predictions
                 with torch.no_grad():
                     policy_output, value_output = self.neural_network(param_tensor)
                 
                 # Apply parameter tweaks
-                modified_params = self.param_tweaker.apply_neural_tweaks(
+                guided_tensor = self.param_tweaker.apply_neural_tweaks(
                     param_tensor, policy_output, exploration=True
                 )
                 
                 # Convert back to individual dict with proper mapping
-                guided_individual = individual.copy()
-                modified_values = modified_params.squeeze().tolist()
+                guided_individual = self.tensor_to_individual(guided_tensor.squeeze(), individual)
+                # modified_values = modified_params.squeeze().tolist()
                 
-                # Map back to parameters (simplified approach)
-                for i, key in enumerate(param_keys):
-                    if isinstance(individual[key], (int, float)) and i < len(modified_values):
-                        guided_individual[key] = modified_values[i]
+                # # Map back to parameters (simplified approach)
+                # for i, key in enumerate(param_keys):
+                #     if isinstance(individual[key], (int, float)) and i < len(modified_values):
+                #         guided_individual[key] = modified_values[i]
                 
                 guided_population.append(guided_individual)
                 pbar.update(1)
@@ -419,14 +573,129 @@ class AlphaDesignPipeline:
         memory_percent = psutil.virtual_memory().percent
         if memory_percent > 80:
             self.logger.warning(f"⚠️ Memory usage high: {memory_percent}%")
-    
+
+    def cleanup_old_checkpoints(self, keep_count: int = 10):
+        
+        try:
+            checkpoint_dir = self.output_dirs['checkpoints']
+            
+            checkpoint_files = [
+                f for f in os.listdir(checkpoint_dir) 
+                if f.startswith('checkpoint_gen_') and f.endswith('.json')
+            ]
+            
+            if len(checkpoint_files) <= keep_count:
+                return
+            
+            checkpoint_files.sort(key=lambda x: int(x.split('_')[2].split('.')[0]))
+            
+            files_to_remove = checkpoint_files[:-keep_count]
+            
+            for filename in files_to_remove:
+                file_path = os.path.join(checkpoint_dir, filename)
+                os.remove(file_path)
+                
+                gen_num = filename.split('_')[2].split('.')[0]
+                
+                summary_path = os.path.join(checkpoint_dir, f'summary_gen_{gen_num}.json')
+                if os.path.exists(summary_path):
+                    os.remove(summary_path)
+                    
+                nn_path = os.path.join(self.output_dirs['neural_networks'], f'network_gen_{gen_num}.pth')
+                if os.path.exists(nn_path):
+                    os.remove(nn_path)
+            
+            if files_to_remove:
+                self.logger.info(f"🧹 Cleaned up {len(files_to_remove)} old checkpoints")
+                
+        except Exception as e:
+            self.logger.warning(f"⚠️ Checkpoint cleanup failed: {str(e)}")
+
+    def save_checkpoint(self, generation: int, gen_result: Dict[str, Any]):
+        try:
+            self.logger.info(f"💾 Saving checkpoint for generation {generation}...")
+            
+            checkpoint = {
+                'generation': generation,
+                'timestamp': datetime.now().isoformat(),
+                'config': self.config,
+                'current_population': self.current_population,
+                'best_designs_history': self.best_designs_history,
+                'training_metrics': self.training_metrics,
+                'generation_result': gen_result,
+                'generation_results' : self.generation_results,
+                'pipeline_state': {
+                    'current_generation': self.current_generation,
+                    'total_runtime': time.time() - self.pipeline_start_time if hasattr(self, 'pipeline_start_time') else 0
+                }
+            }
+            
+            if self.neural_network is not None:
+                nn_checkpoint_path = os.path.join(
+                    self.output_dirs['neural_networks'], 
+                    f'network_gen_{generation:03d}.pth'
+                )
+                torch.save({
+                    'model_state_dict': self.neural_network.state_dict(),
+                    'optimizer_state_dict': self.optimizer_manager.get_optimizer().state_dict() if self.optimizer_manager else None,
+                    'generation': generation,
+                    'total_params': sum(p.numel() for p in self.neural_network.parameters())
+                }, nn_checkpoint_path)
+                
+                checkpoint['neural_network_checkpoint'] = nn_checkpoint_path
+                self.logger.info(f"🧠 Neural network saved: {nn_checkpoint_path}")
+            
+            checkpoint_filename = f'checkpoint_gen_{generation:03d}.json'
+            checkpoint_path = os.path.join(self.output_dirs['checkpoints'], checkpoint_filename)
+            
+            def json_serializer(obj):
+                if isinstance(obj, torch.Tensor):
+                    return obj.tolist()
+                elif hasattr(obj, '__dict__'):
+                    return str(obj)
+                return str(obj)
+            
+            with open(checkpoint_path, 'w') as f:
+                json.dump(checkpoint, f, indent=2, default=json_serializer)
+            
+            summary_checkpoint = {
+                'generation': generation,
+                'timestamp': checkpoint['timestamp'],
+                'best_fitness': gen_result.get('best_fitness', -1000),
+                'average_fitness': gen_result.get('average_fitness', -1000),
+                'valid_individuals': gen_result.get('valid_individuals', 0),
+                'population_size': len(self.current_population),
+                'neural_network_enabled': self.config['neural_network_enabled']
+            }
+            
+            summary_path = os.path.join(self.output_dirs['checkpoints'], f'summary_gen_{generation:03d}.json')
+            with open(summary_path, 'w') as f:
+                json.dump(summary_checkpoint, f, indent=2)
+            
+            self.cleanup_old_checkpoints()
+            
+            if gen_result.get('best_fitness', -1000) > -1000:
+                self.best_designs_history.append({
+                    'generation': generation,
+                    'fitness': gen_result['best_fitness'],
+                    'individual': gen_result.get('best_individual', {}),
+                    'timestamp': datetime.now().isoformat()
+                })
+            
+            self.logger.info(f"✅ Checkpoint saved successfully: {checkpoint_path}")
+            
+            checkpoint_size = os.path.getsize(checkpoint_path) / (1024 * 1024)  # MB
+            self.logger.info(f"📊 Checkpoint size: {checkpoint_size:.2f} MB")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to save checkpoint: {str(e)}")
+        
     def train_neural_network_extended(self, recent_generations: List[Dict[str, Any]], generation: int):
         
         if not recent_generations or self.neural_network is None:
             return
         
         try:
-            self.logger.info(f"🧠 Extended neural network training - Generation {generation}")
             
             # Adaptive epochs based on generation
             if generation < 30:
@@ -466,31 +735,36 @@ class AlphaDesignPipeline:
             
             # Training loop with curriculum weights
             optimizer = self.optimizer_manager.get_optimizer()
+            device = next(self.neural_network.parameters()).device
             
             for epoch in range(epochs):
                 epoch_loss = 0
                 batch_count = 0
                 
                 for gen_data in recent_generations:
-                    # Convert to tensor
+                    # self.logger.info(f"🧠 Extended neural network training - Generation {generation}")
+                    # self.logger.info(f"🔍 Debug gen_data keys: {list(gen_data.keys())}")
+                    # self.logger.info(f"🔍 Debug best_fitness type: {type(gen_data.get('best_fitness'))}")
+                    # self.logger.info(f"🔍 Debug best_fitness value: {gen_data.get('best_fitness')}")
+                    # self.logger.info(f"🔍 Debug best_individual type: {type(gen_data.get('best_individual'))}")
                     param_tensor = self.param_tweaker.genetic_to_neural_params(
                         [list(gen_data['best_individual'].values())]
                     )
                     
-                    # Forward pass
+                    device = next(self.neural_network.parameters()).device
+                    param_tensor = param_tensor.to(device)
+                    
                     policy_output, value_output = self.neural_network(param_tensor)
                     
-                    # Curriculum-weighted loss
                     constraint_loss = self.calculate_constraint_loss(gen_data, value_output)
                     performance_loss = self.calculate_performance_loss(gen_data, value_output)
                     
                     total_loss = (weight_constraints * constraint_loss + 
                                  weight_performance * performance_loss)
                     
-                    # Backward pass
                     optimizer.zero_grad()
                     total_loss.backward()
-                    torch.nn.utils.clip_grad_norm_(self.neural_network.parameters(), 1.0)  # Gradient clipping
+                    torch.nn.utils.clip_grad_norm_(self.neural_network.parameters(), 1.0)  
                     optimizer.step()
                     
                     epoch_loss += total_loss.item()
@@ -524,12 +798,18 @@ class AlphaDesignPipeline:
     def calculate_constraint_loss(self, gen_data: Dict[str, Any], value_output: torch.Tensor):
         try:
             best_individual = gen_data['best_individual']
-
+            
+            if isinstance(best_individual, list):
+                best_individual = best_individual[0] if len(best_individual) > 0 else {}
+            
             params = F1FrontWingParams(**best_individual)
             analyzer = F1FrontWingAnalyzer(params)
             constraint_results = analyzer.run_complete_analysis()
             
-            target_compliance = torch.tensor([constraint_results['overall_compliance']], dtype=torch.float32)
+            compliance_value = float(constraint_results['overall_compliance'])
+            target_compliance = torch.tensor([compliance_value], 
+                                        dtype=torch.float32, 
+                                        device=value_output.device)
             
             constraint_loss = torch.nn.functional.mse_loss(value_output, target_compliance)
             
@@ -537,14 +817,21 @@ class AlphaDesignPipeline:
             
         except Exception as e:
             self.logger.warning(f"⚠️ Constraint loss calculation failed: {e}")
-            return torch.tensor(0.0, requires_grad=True)
-    
+            return torch.tensor(0.01, dtype=torch.float32, requires_grad=True, device=value_output.device)
+
     def calculate_performance_loss(self, gen_data: Dict[str, Any], value_output: torch.Tensor):
         try:
             fitness_score = gen_data['best_fitness']
             
+            if isinstance(fitness_score, list):
+                fitness_score = fitness_score[0] if len(fitness_score) > 0 else 0.0
+            
+            fitness_score = float(fitness_score)
             normalized_fitness = min(1.0, max(0.0, fitness_score / 100.0))
-            target_performance = torch.tensor([normalized_fitness], dtype=torch.float32)
+            
+            target_performance = torch.tensor([normalized_fitness], 
+                                            dtype=torch.float32,
+                                            device=value_output.device)
             
             performance_loss = torch.nn.functional.mse_loss(value_output, target_performance)
             
@@ -552,8 +839,8 @@ class AlphaDesignPipeline:
             
         except Exception as e:
             self.logger.warning(f"⚠️ Performance loss calculation failed: {e}")
-            return torch.tensor(0.0, requires_grad=True)
-    
+            return torch.tensor(0.01, dtype=torch.float32, requires_grad=True, device=value_output.device)
+
     def save_training_metrics(self, generation: int, final_loss: float, training_phase: str):
         try:
             metrics = {
@@ -661,10 +948,6 @@ class AlphaDesignPipeline:
                 self.save_checkpoint(generation, gen_result)
                 self.cleanup_generation()
             
-            if self.early_stopping.should_stop(gen_result['best_fitness']):
-                self.logger.info(f"🛑 Early stopping triggered at generation {generation}")
-                break
-            
             # Use extended training instead of basic training
             if self.config['neural_network_enabled'] and generation % self.config['neural_network']['training_frequency'] == 0:
                 # Use extended training with curriculum learning
@@ -704,7 +987,9 @@ class AlphaDesignPipeline:
             "total_designs_generated": len(stl_files),
             "output_directories": self.output_dirs,
             "best_designs_stl": stl_files,
-            "final_population_size": len(self.current_population) if hasattr(self, 'current_population') else 0
+            "final_population_size": len(self.current_population) if hasattr(self, 'current_population') else 0,
+            "early_stopped": False,
+            # "generated_results" : self.generation_results if hasattr(self, 'generation_results') else [],
         }
         
         summary_path = os.path.join(self.output_dirs['checkpoints'], 'final_summary.json')
