@@ -1,0 +1,9 @@
+{
+  "generation": 1880,
+  "timestamp": "2025-08-03T08:20:09.792677",
+  "best_fitness": 57.14285714285714,
+  "average_fitness": 0.7885714285714239,
+  "valid_individuals": 474,
+  "population_size": 500,
+  "neural_network_enabled": true
+}
