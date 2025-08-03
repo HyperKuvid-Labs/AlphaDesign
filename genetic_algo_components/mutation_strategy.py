@@ -4,14 +4,12 @@ from typing import Dict, Any
 
 #so for the gaussain mutation, this is the def from gfg, which is kinda nice, people are literally mad in combining diff domains always, fascinating!!
 
-
 # Gaussian mutation is a technique used in genetic algorithms (GAs) to introduce small random changes in the individuals of a population. It involves adding a random value from a Gaussian (normal) distribution to each element of an individual's vector to create a new offspring.
 #  This method is particularly useful for fine-tuning solutions and exploring the domain effectively.
 
 
 # In Gaussian mutation, the variance of the distribution is determined by parameters such as scale and shrink. The scale controls the standard deviation of the mutation at the first generation, while the shrink controls the rate at which the average amount of mutation decreases over generations.
 #  This approach helps in maintaining a balance between exploration and exploitation in the search process.
-
 
 
 class F1MutationOperator:
@@ -285,11 +283,10 @@ class F1MutationOperator:
             'wall_thickness_details': (1.5, 3.0),
             'minimum_radius': (0.2, 0.8),
             'flap_cambers': (0.06, 0.18),
-            'flap_slot_gaps': (8, 18),
+            'flap_slot_gaps': (6, 12),
             'flap_vertical_offsets': (15, 120),
             'flap_horizontal_offsets': (20, 120),
             'strake_heights': (20, 80),
             'weight_estimate': (3.0, 8.0),
-            'flap_count': (3, 6), 
-            
+            'flap_count': (3, 6),    
         }

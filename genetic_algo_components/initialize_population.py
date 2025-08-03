@@ -72,7 +72,7 @@ class F1PopulInit:
             
             # Flap system bounds
             'flap_cambers': (0.06, 0.18),      # Updated from (0.05, 0.20)
-            'flap_slot_gaps': (8, 18),         # Updated from (5, 25)
+            'flap_slot_gaps': (6, 12),         # Updated from (5, 25)
             'flap_vertical_offsets': (15, 120), # Updated from (10, 150)
             'flap_horizontal_offsets': (20, 120), # Updated from (15, 150)
 

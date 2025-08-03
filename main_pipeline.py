@@ -157,13 +157,22 @@ class AlphaDesignPipeline:
         param_count = scalar_params + list_params
         
         self.neural_network, total_params = NetworkInitializer.setup_network(
-            param_count, 
-            device='cuda' if torch.cuda.is_available() else 'cpu'
+            param_count,
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            hidden_dim=min(512, max(256, param_count * 4)),
+            depth=3
         )
         
         self.optimizer_manager = OptimizerManager(
             self.neural_network,
             learning_rate=self.config['neural_network']['learning_rate']
+        )
+
+        self.optimizer_manager.use_adamw_cosine(
+            t0=10, 
+            t_mult=2,
+            lr=2e-4,  #lower learning rate for stability
+            weight_decay=1e-3
         )
         
         self.loss_calculator = AlphaDesignLoss()

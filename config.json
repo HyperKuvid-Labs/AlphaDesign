@@ -1,9 +1,9 @@
 {
-  "max_generations": 2000,
-  "population_size": 500,
+  "max_generations": 20,
+  "population_size": 5,
   "neural_network_enabled": true,
-  "save_frequency": 40,
-  "max_runtime_hours": 144,
+  "save_frequency": 1,
+  "max_runtime_hours": 24,
   
   "early_stopping": {
     "patience": 30,

@@ -1,9 +1,0 @@
-{
-  "generation": 1800,
-  "timestamp": "2025-08-03T07:56:48.263896",
-  "best_fitness": 57.14285714285714,
-  "average_fitness": 0.9328571428570896,
-  "valid_individuals": 474,
-  "population_size": 500,
-  "neural_network_enabled": true
-}
