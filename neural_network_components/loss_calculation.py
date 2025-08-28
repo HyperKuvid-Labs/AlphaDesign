@@ -3,56 +3,63 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class AlphaDesignLoss:
-    def __init__(self, value_wt=1.0, policy_wt=1.0):
-        self.value_wt = value_wt
-        self.policy_wt = policy_wt
-        self.mse_fn = nn.MSELoss()
-        self.huber_fn = nn.SmoothL1Loss()  # learned this new thing 
+    def __init__(self, value_weight=1.0, policy_weight=1.0):
+        self.value_weight = value_weight
+        self.policy_weight = policy_weight
+        self.mse_loss = nn.MSELoss()
+        self.huber_loss = nn.SmoothL1Loss() #learned this new thing 
     
-    def compute_pipeline_loss(self, policy_out, value_out, cfd_vals, param_deltas):
-        # val_loss = self.mse_fn(value_out.squeeze(), cfd_vals.float())
-        val_loss = self.huber_fn(value_out.squeeze(), cfd_vals.float())
+    def compute_pipeline_loss(self, policy_pred, value_pred, cfd_scores, param_improvements):
+        # value_loss = self.mse_loss(value_pred.squeeze(), cfd_scores.float())
+        value_loss = self.huber_loss(value_pred.squeeze(), cfd_scores.float())
         
-        pol_loss = self._compute_policy_loss(policy_out, param_deltas, cfd_vals)
+        policy_loss = self._compute_policy_loss(policy_pred, param_improvements, cfd_scores)
 
-        reg_term = self.compute_regularization_loss(policy_out)
+        reg_loss = self.compute_regularization_loss(policy_pred)
         
-        total_obj = (self.value_wt * val_loss +
-                     self.policy_wt * pol_loss +
-                     0.01 * reg_term)
+        total_loss = (self.value_weight * value_loss +
+                      self.policy_weight * policy_loss +
+                      0.01 * reg_loss)
         
-        return total_obj, {
-            'total': total_obj.item(),
-            'value': val_loss.item(),
-            'policy': pol_loss.item(),
-            'regularization': reg_term.item()
+        return total_loss, {
+            'total': total_loss.item(),
+            'value': value_loss.item(),
+            'policy': policy_loss.item(),
+            'regularization': reg_loss.item()
         }
-
-    def _compute_policy_loss(self, pol_out, deltas, cfd_vals):
-        norm_deltas = torch.tanh(deltas / 10.0)
-        adv_factors = torch.sigmoid(cfd_vals / 50.0)
-
-        pol_loss = -torch.mean(pol_out * norm_deltas.unsqueeze(-1) * adv_factors.unsqueeze(-1))
-        return pol_loss
     
-    def compute_regularization_loss(self, pol_out):
-        l2_penalty = torch.mean(torch.square(pol_out))
+    # def _compute_policy_loss(self, policy_output, improvements):
+    #     improvement_rewards = torch.where(improvements > 0, 1.0, -0.5)
+    #     policy_loss = -torch.mean(policy_output * improvement_rewards.unsqueeze(-1))
+    #     return policy_loss
+
+    def _compute_policy_loss(self, policy_output, improvements, cfd_scores):
+        improvements_normalized = torch.tanh(improvements / 10.0)
+        advantages = torch.sigmoid(cfd_scores / 50.0)
+
+        policy_loss = -torch.mean(policy_output * improvements_normalized.unsqueeze(-1) * advantages.unsqueeze(-1))
+
+        return policy_loss
+    
+    def compute_regularization_loss(self, policy_output):
+        l2_penalty = torch.mean(torch.square(policy_output))
         
-        if pol_out.size(0) > 1:
-            smooth_penalty = torch.mean((pol_out[1:] - pol_out[:-1]) ** 2)
+        if policy_output.size(0) > 1:
+            smoothness_penalty = torch.mean((policy_output[1:] - policy_output[:-1]) ** 2)
         else:
-            smooth_penalty = torch.tensor(0.0, device=pol_out.device)
+            smoothness_penalty = torch.tensor(0.0, device=policy_output.device)
 
-        return l2_penalty + 0.1 * smooth_penalty
+        return l2_penalty + 0.1 * smoothness_penalty
     
-    def cfd_reward_loss(self, val_preds, actual_cfd):
-        norm_cfd = torch.sigmoid(actual_cfd / 100.0)
-        return self.huber_fn(val_preds.squeeze(), norm_cfd)
+    def cfd_reward_loss(self, value_predictions, actual_cfd_results):
+        normalized_cfd = torch.sigmoid(actual_cfd_results / 100.0)
+        return self.huber_loss(value_predictions.squeeze(), normalized_cfd)
     
-    def compute_curriculum_loss(self, pol_out, val_out, cfd_vals, deltas, diff_factor=1.0):
-        base_loss, loss_stats = self.compute_pipeline_loss(pol_out, val_out, cfd_vals, deltas)
+    def compute_curriculum_loss(self, policy_pred, value_pred, cfd_scores, param_improvements, difficulty_factor=1.0):
+        base_loss, loss_dict = self.compute_pipeline_loss(policy_pred, value_pred, cfd_scores, param_improvements)
         
-        curr_loss = base_loss * diff_factor
-        loss_stats['curriculum_factor'] = diff_factor
+        curriculum_loss = base_loss * difficulty_factor
+        loss_dict['curriculum_factor'] = difficulty_factor
         
-        return curr_loss, loss_stats
+        return curriculum_loss, loss_dict
+
