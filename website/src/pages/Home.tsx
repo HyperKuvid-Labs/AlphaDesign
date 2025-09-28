@@ -70,7 +70,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center space-y-2">
               <div className="text-4xl md:text-5xl font-rajdhani font-bold text-foreground">
-                9+
+                18+
               </div>
               <div className="text-lg font-inter text-muted-foreground">
                 Hours of Training
