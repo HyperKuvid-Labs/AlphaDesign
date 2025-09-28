@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
-import alphaLogo from '@/assets/alphadesign-logo.png';
+import { Menu, X, Github } from 'lucide-react'; 
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -39,6 +38,17 @@ const Navigation = () => {
                 {item.label}
               </NavLink>
             ))}
+            
+            {/* GitHub Link */}
+            <a
+              href="https://github.com/HyperKuvid-Labs/AlphaDesign"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-lg border border-border hover:bg-accent transition-racing ml-4"
+              aria-label="GitHub Repository"
+            >
+              <Github className="w-5 h-5" />
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -71,6 +81,18 @@ const Navigation = () => {
                   {item.label}
                 </NavLink>
               ))}
+              
+              {/* Mobile GitHub Link */}
+              <a
+                href="https://github.com/HyperKuvid-Labs/AlphaDesign"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 px-4 py-3 rounded-lg font-rajdhani font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-racing"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Github className="w-5 h-5" />
+                <span>GitHub</span>
+              </a>
             </div>
           </div>
         )}

@@ -56,7 +56,7 @@ const STLModelComponent = () => {
       </mesh>
       
       {/* Model Label */}
-      <Text
+      {/* <Text
         position={[0, 3, 0]}
         fontSize={0.5}
         color="#ffffff"
@@ -64,7 +64,7 @@ const STLModelComponent = () => {
         anchorY="middle"
       >
         ALPHA DESIGN F1 Model
-      </Text>
+      </Text> */}
     </group>
   );
 };
