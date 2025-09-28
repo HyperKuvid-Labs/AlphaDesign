@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Red Bull F1 inspired design system - Alpha-Design showcase */
+
+@layer base {
+  :root {
+    /* Red Bull F1 Color Palette */
+    --background: 0 0% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Red Bull Red */
+    --primary: 355 85% 45%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 355 85% 55%;
+
+    /* Electric Blue */
+    --secondary: 215 100% 55%;
+    --secondary-foreground: 0 0% 98%;
+    --secondary-glow: 215 100% 65%;
+
+    /* Muted backgrounds */
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 70%;
+
+    /* Accent colors */
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 95%;
+
+    /* Metallic silver */
+    --metallic: 220 10% 80%;
+    --metallic-dark: 220 15% 35%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 25%;
+    --input: 0 0% 18%;
+    --ring: 355 85% 45%;
+
+    --radius: 0.75rem;
+
+    /* F1 Gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(355 85% 45%), hsl(215 100% 55%));
+    --gradient-brand-glow: linear-gradient(135deg, hsl(355 85% 55%), hsl(215 100% 65%));
+    --gradient-metallic: linear-gradient(135deg, hsl(220 15% 60%), hsl(220 10% 80%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 12%), hsl(0 0% 8%));
+    
+    /* Racing Effects */
+    --shadow-glow: 0 0 30px hsl(355 85% 45% / 0.3);
+    --shadow-blue-glow: 0 0 30px hsl(215 100% 55% / 0.3);
+    --shadow-elevation: 0 8px 32px hsl(0 0% 0% / 0.4);
+    
+    /* Transitions */
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-rajdhani font-semibold;
+  }
+}
+
+@layer components {
+  /* F1 Racing Components */
+  .racing-card {
+    @apply bg-card border border-border rounded-xl backdrop-blur-sm;
+    @apply shadow-lg hover:shadow-elevation transition-shadow duration-300;
+  }
+
+  .brand-gradient {
+    background: var(--gradient-brand);
+  }
+
+  .brand-gradient-glow {
+    background: var(--gradient-brand-glow);
+  }
+
+  .metallic-gradient {
+    background: var(--gradient-metallic);
+  }
+
+  .glow-red {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .glow-blue {
+    box-shadow: var(--shadow-blue-glow);
+  }
+
+  .transition-racing {
+    transition: var(--transition-smooth);
+  }
+
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+
+  /* Tab Navigation Styles */
+  .nav-tab {
+    @apply relative px-6 py-3 font-rajdhani font-medium text-muted-foreground;
+    @apply hover:text-foreground transition-racing;
+    @apply after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5;
+    @apply after:bg-primary after:scale-x-0 after:origin-right after:transition-transform;
+    @apply hover:after:scale-x-100 hover:after:origin-left;
+  }
+
+  .nav-tab.active {
+    @apply text-foreground after:scale-x-100;
+  }
+
+  /* Hero Text Effect */
+  .hero-text {
+    @apply bg-clip-text text-transparent;
+    background: var(--gradient-brand);
+  }
+
+  /* Racing Button Variants */
+  .btn-racing {
+    @apply px-8 py-4 font-rajdhani font-semibold text-lg;
+    @apply bg-primary text-primary-foreground rounded-lg;
+    @apply hover:shadow-glow transform hover:scale-105 transition-racing;
+  }
+
+  .btn-racing-outline {
+    @apply px-8 py-4 font-rajdhani font-semibold text-lg;
+    @apply border-2 border-primary text-primary bg-transparent rounded-lg;
+    @apply hover:bg-primary hover:text-primary-foreground hover:shadow-glow;
+    @apply transform hover:scale-105 transition-racing;
+  }
+
+  /* Timeline Components */
+  .timeline-card {
+    @apply racing-card p-6 hover:border-primary/50 transition-racing;
+    @apply hover:glow-red transform hover:scale-[1.02];
+  }
+
+  /* Model Viewer Styles */
+  .model-viewer {
+    @apply bg-gradient-to-br from-background to-muted;
+    @apply border border-border rounded-xl overflow-hidden;
+    @apply shadow-elevation;
+  }
+}

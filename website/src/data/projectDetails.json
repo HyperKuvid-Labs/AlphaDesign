@@ -1,0 +1,177 @@
+{
+  "1": {
+    "id": 1,
+    "title": "Reinforcement learning implementation",
+    "shortDescription": "A hybrid AI system that combines genetic algorithms and reinforcement learning to optimize Formula 1 front wing aerodynamics. The system explores wing geometries through evolutionary algorithms, then refines designs using RL agents trained on CFD simulations, all while maintaining strict FIA regulatory compliance.",
+    "detailedDescription": "This project implements a two-stage optimization architecture for F1 front wing design. The first stage employs genetic algorithms to perform broad exploration of the multi-element wing design space, using evolutionary pressure to identify promising geometric configurations. These candidate solutions undergo fitness evaluation through computational fluid dynamics simulations to assess aerodynamic performance metrics like downforce and drag coefficients.The second stage introduces reinforcement learning agents that learn to make intelligent design modifications through iterative interaction with the CFD environment. The RL component acts as a local optimizer, taking the globally-explored solutions from the genetic algorithm and fine-tuning them through learned policy networks. This hybrid approach leverages the global search capabilities of evolutionary algorithms while benefiting from the adaptive learning and local optimization strengths of reinforcement learning.The entire system operates under strict FIA regulation constraints, ensuring all generated wing designs comply with Formula 1 technical regulations regarding dimensions, angles, and structural requirements.",
+    "objectives": [
+      "Multi-objective optimization: Maximize downforce while minimizing drag and maintaining aerodynamic balance",
+
+      "Regulatory compliance: Ensure all designs meet FIA Formula 1 technical regulations",
+
+      "Design space exploration: Systematically explore complex multi-element wing geometries",
+
+      "Performance efficiency: Reduce computational time compared to traditional optimization methods",
+
+      "Adaptive learning: Develop RL agents capable of learning optimal design patterns from CFD feedback"
+    ],
+    "achievements": [
+      "Achieved good results in just 2 days of training on your lap with less specs"
+    ],
+    "technologies": [
+      "SolidWorks 3D CAD Software",
+      "Autodesk Fusion 360",
+      "Adobe Illustrator for concept sketches",
+      "MATLAB for initial calculations",
+      "Wind tunnel simulation software"
+    ],
+    "challenges": [
+      "Took a lot of time to really crack how we are gonna really devise the entire policy network with proper reward updates",
+      "Getting proper dimensions and parameters of the front wing to really align with those monstrous car's wings",
+      "Getting proper cfd analysis with major mathematical calculations as it is where we get the reward from."
+    ],
+    "outcomes": [
+      "Fully implemented the RL agent with policy and value networks and trained it to convergence",
+      "Completed technical specifications for CFD analysis",
+      "Got to know what are the new updates we are going to implement in the next milestones"
+    ],
+    "images": [
+      "/milestone-1-detail-1.png"
+    ],
+    "status": "completed",
+    "date": "Week 1-2",
+    "duration": "2 weeks",
+    "teamMembers": [
+      "Lead Designer - John Smith",
+      "Aerodynamics Engineer - Sarah Johnson",
+      "CAD Specialist - Mike Chen",
+      "Project Manager - Alex Rodriguez"
+    ]
+  },
+  "2": {
+    "id": 2,
+    "title": "Smoothness and bezier curve implementation",
+    "shortDescription": "The project introduces Bezier curve parameterization for smooth F1 wing profiles, intelligent CFD scheduling to cut simulation costs, and physics-informed rewards for RL agents. These innovations enable the system to achieve high aerodynamic fitness scores and regulatory compliance.",
+    "detailedDescription": "Key innovations in this aerodynamic optimization system include the use of Bezier curve parameterization, which allows for the generation of smooth, flexible, and manufacturable front wing profiles. This approach provides precise control over wing geometry, enabling the exploration of complex multi-element designs within regulatory limits.The system also features an intelligent CFD scheduling mechanism that prioritizes simulations based on design promise and learning needs, reducing computational overhead by 40%. This efficiency gain allows for more rapid iteration and evaluation of candidate designs.Additionally, the reinforcement learning agent is guided by a physics-informed reward structure. This reward system incorporates aerodynamic principles—such as maximizing downforce-to-drag ratio and ensuring flow stability—so the agent learns to favor solutions that are not only high-performing but also physically plausible and compliant with FIA regulations.As a result, the system consistently achieves fitness scores in the 60–80 range, reflecting substantial improvements in aerodynamic efficiency while maintaining strict regulatory compliance.",
+    "objectives": [
+      "Enable smooth, manufacturable wing designs using Bezier curve parameterization",
+      "Reduce computational cost of CFD simulations through intelligent scheduling",
+      "Guide RL agents with physics-based rewards to ensure aerodynamically sound and legal solutions",
+      "Achieve high fitness scores (60–80) in downforce-to-drag ratio while meeting FIA rules"
+    ],
+    "achievements": [
+      "Implemented Bezier curve parameterization for flexible, smooth wing geometry control within few hours of training."
+    ],
+    "technologies": [
+      "ANSYS Fluent CFD Software",
+      "Wind tunnel testing facility",
+      "High-speed pressure sensors",
+      "Flow visualization techniques",
+      "Data acquisition systems"
+    ],
+    "challenges": [
+      "Getting the incremental steps in the front wing and getting smooth curves at the rear and side part",
+      "Adding the gemoterical part of the bezier curve to the front wing and getting the final shape of the front wing."
+    ],
+    "outcomes": [
+      "Implemented Bezier curve parameterization for flexible, smooth wing geometry control",
+      "Conducted bezier curve testing with CFD analysis to validate aerodynamic performance",
+      "Plotted what are we gonna actually imporve next"
+    ],
+    "images": [
+      "/milestone-2-detail-1.png"
+    ],
+    "status": "completed",
+    "date": "Week 3-4",
+    "duration": "2 weeks",
+    "teamMembers": [
+      "CFD Engineer - Dr. Emily Watson",
+      "Wind Tunnel Technician - Robert Brown",
+      "Data Analyst - Lisa Park",
+      "Aerodynamics Specialist - David Kim"
+    ]
+  },
+  "3": {
+    "id": 3,
+    "title": "DDPG-Based RL for Continuous Aerodynamic Optimization",
+    "shortDescription": "This milestone introduces the use of Deep Deterministic Policy Gradient (DDPG) to enable reinforcement learning in continuous action spaces for aerodynamic optimization, moving beyond traditional RL algorithms that are limited to discrete actions.",
+    "detailedDescription": "While previous reinforcement learning approaches in this project have focused on algorithms suited for discrete action spaces, this milestone recognizes the need for more nuanced control over aerodynamic parameters—such as wing angles and curvature—which are inherently continuous. To address this, DDPG is implemented, allowing the RL agent to operate directly in continuous action spaces. This enables the agent to propose real-valued adjustments to design variables, unlocking finer granularity and potentially superior aerodynamic solutions. The adoption of DDPG is a targeted enhancement, not a full transition from discrete to continuous RL, but rather an expansion to support the requirements of aerodynamic design tasks that demand continuous control.",
+    "objectives": [
+      "Manufacture first physical prototype components",
+      "Validate manufacturing processes and tolerances",
+      "Conduct material property testing",
+      "Perform structural integrity analysis",
+      "Optimize manufacturing workflow"
+    ],
+    "achievements": [
+      "Attached the current progress .Infer to understand our current status",
+      "Incorporate RL algorithms for continuous action spaces to better match aerodynamic design needs",
+      "Demonstrate the effectiveness of DDPG in aerodynamic optimization compared to discrete-action RL methods"
+    ],
+    "technologies": [
+      "Industrial 3D printers (SLA/SLS)",
+      "Carbon fiber reinforced materials",
+      "CNC machining centers",
+      "Composite lay-up techniques",
+      "Non-destructive testing equipment"
+    ],
+    "challenges": [
+      "Trying to convert from Actor-Critic to DDPG which is not acutally that big of a challenge"
+    ],
+    "outcomes": [
+      "Showcased improved solution quality in aerodynamic tasks requiring continuous control",
+      "Better in taking actions and valuating it "
+    ],
+    "images": [
+      "/milestone-3-detail-3.png"
+    ],
+    "status": "in-progress",
+    "date": "Week 5-6",
+    "duration": "2 weeks",
+    "teamMembers": [
+      "Manufacturing Engineer - Jennifer Liu",
+      "3D Printing Specialist - Mark Thompson",
+      "Quality Control Inspector - Anna Garcia",
+      "Materials Engineer - Chris Anderson"
+    ]
+  },
+  "4": {
+    "id": 4,
+    "title": "Modular F1 Car Generation Framework",
+    "shortDescription": "his milestone extends the automated design process from the front wing to the entire F1 car, enabling modular generation of all car components with high accuracy and quality.",
+    "detailedDescription": "Building on the success of auto-generating front wing designs, this milestone introduces a modular framework for assembling a complete F1 car. The system applies the same advanced optimization techniques to every major car component, including the chassis, rear wing, suspension, and more. Each module is designed and refined independently, then integrated into a cohesive car assembly. The approach ensures that every part meets strict aerodynamic and regulatory standards, while maintaining overall design harmony and performance. This modular architecture allows for flexible updates, rapid prototyping, and scalable improvements across the entire vehicle.",
+    "objectives": [
+      "Automate the generation of all F1 car components with consistent accuracy and quality",
+      "Apply advanced optimization techniques (GA, RL, Bezier parameterization) to each module based on the requirements",
+      "Ensure regulatory compliance and aerodynamic performance for every part"
+    ],
+    "achievements": [
+      "TBD - Milestone not yet started"
+    ],
+    "technologies": [
+      "Precision assembly tools",
+      "Torque measurement systems",
+      "Performance testing equipment",
+      "Data logging systems",
+      "Quality measurement instruments"
+    ],
+    "challenges": [
+      "Yet to discover something"
+    ],
+    "outcomes": [
+      "Nothing as of now......"
+    ],
+    "images": [
+      "/milestone-4.jpg"
+    ],
+    "status": "upcoming",
+    "date": "Week 7-8",
+    "duration": "2 weeks",
+    "teamMembers": [
+      "Assembly Technician - Michael Brown",
+      "Test Engineer - Rachel Green",
+      "Quality Manager - Steve Wilson",
+      "Project Lead - Alex Rodriguez"
+    ]
+  }
+}
