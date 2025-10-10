@@ -77,13 +77,28 @@ class AlphaDesignPipeline:
         log_dir = "logs"
         os.makedirs(log_dir, exist_ok=True)
         
+        # Create handlers with UTF-8 encoding to support emoji characters
+        file_handler = logging.FileHandler(
+            f"{log_dir}/alphadesign_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
+            encoding='utf-8'
+        )
+        stream_handler = logging.StreamHandler()
+        
+        # Set UTF-8 encoding for console output on Windows
+        import sys
+        if hasattr(sys.stdout, 'reconfigure'):
+            try:
+                sys.stdout.reconfigure(encoding='utf-8')
+                sys.stderr.reconfigure(encoding='utf-8')
+            except Exception:
+                # If reconfigure fails, we'll use ASCII-safe logging
+                pass
+        
+        # Configure logging
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(f"{log_dir}/alphadesign_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"),
-                logging.StreamHandler()
-            ]
+            handlers=[file_handler, stream_handler]
         )
         self.logger = logging.getLogger("AlphaDesign")
     
@@ -135,7 +150,12 @@ class AlphaDesignPipeline:
         
         # 1. genetic algo components
         self.population_init = F1PopulInit(base_params, self.config['population_size'])
-        self.fitness_eval = FitnessEval()
+        
+        # Initialize fitness evaluator with CFD results directory from config
+        cfd_config = self.config.get('cfd_analysis', {})
+        cfd_results_dir = cfd_config.get('results_output_dir', 'cfd_results')
+        self.fitness_eval = FitnessEval(cfd_results_dir=cfd_results_dir)
+        
         self.crossover_ops = CrossoverOps()
         self.mutation_ops = F1MutationOperator()
         
@@ -238,6 +258,9 @@ class AlphaDesignPipeline:
     
     def run_single_generation(self, base_params: F1FrontWingParams):
         generation_start = time.time()
+        
+        # Set generation number for CFD result tracking
+        self.fitness_eval.set_generation(self.current_generation)
         
         # Progress bar for population evaluation
         eval_pbar = tqdm(

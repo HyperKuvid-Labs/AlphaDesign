@@ -3,6 +3,8 @@ from stl import mesh
 import math
 import os
 from scipy.interpolate import make_interp_spline
+from datetime import datetime
+import json
 
 class UltraRealisticF1FrontWingGenerator:
 
@@ -1032,6 +1034,223 @@ class UltraRealisticF1FrontWingGenerator:
                 compliance_report['y250_compliance'] = False
         
         return compliance_report
+    
+    def export_cfd_parameters(self, json_filename="wing_cfd_parameters.json"):
+        """
+        Export all wing parameters needed for accurate CFD analysis.
+        Call this after generate_complete_wing() to save parameters.
+        """
+        
+        # Calculate derived properties
+        main_element_area = (self.root_chord * self.total_span) / 1e6  # m²
+        total_flap_area = sum(
+            (self.flap_root_chords[i] * self.flap_spans[i]) / 1e6 
+            for i in range(self.flap_count)
+        )
+        total_reference_area = main_element_area + total_flap_area
+        
+        # Build comprehensive parameter dictionary
+        cfd_params = {
+            "metadata": {
+                "generated_date": datetime.now().isoformat(),
+                "generator_version": "UltraRealisticF1FrontWingGenerator v2.0",
+                "description": "CFD analysis parameters for multi-element F1 front wing",
+                "units": {
+                    "length": "mm",
+                    "area": "m²",
+                    "angle": "degrees",
+                    "force": "N",
+                    "weight": "kg"
+                }
+            },
+            
+            "geometry": {
+                "main_element": {
+                    "span_mm": self.total_span,
+                    "root_chord_mm": self.root_chord,
+                    "tip_chord_mm": self.tip_chord,
+                    "taper_ratio": self.chord_taper_ratio,
+                    "sweep_angle_deg": self.sweep_angle,
+                    "dihedral_angle_deg": self.dihedral_angle,
+                    "twist_range_deg": self.twist_distribution_range,
+                    "reference_area_m2": main_element_area
+                },
+                
+                "flaps": [
+                    {
+                        "flap_index": i + 1,
+                        "span_mm": self.flap_spans[i],
+                        "root_chord_mm": self.flap_root_chords[i],
+                        "tip_chord_mm": self.flap_tip_chords[i],
+                        "reference_area_m2": (self.flap_root_chords[i] * self.flap_spans[i]) / 1e6,
+                        "geometric_angle_deg": 8 + 3 * i if self.flap_angle_progression else 8,
+                        "slot_gap_mm": self.flap_slot_gaps[i],
+                        "vertical_offset_mm": self.flap_vertical_offsets[i],
+                        "horizontal_offset_mm": self.flap_horizontal_offsets[i],
+                        "camber_ratio": self.flap_cambers[i]
+                    }
+                    for i in range(self.flap_count)
+                ],
+                
+                "total_elements": self.flap_count + 1,
+                "total_reference_area_m2": total_reference_area
+            },
+            
+            "airfoil_properties": {
+                "main_element": {
+                    "base_profile": self.base_profile,
+                    "max_thickness_ratio": self.max_thickness_ratio,
+                    "camber_ratio": self.camber_ratio,
+                    "camber_position": self.camber_position,
+                    "leading_edge_radius_mm": self.leading_edge_radius,
+                    "trailing_edge_thickness_mm": self.trailing_edge_thickness,
+                    "upper_surface_radius_mm": self.upper_surface_radius,
+                    "lower_surface_radius_mm": self.lower_surface_radius
+                },
+                
+                "flaps": [
+                    {
+                        "flap_index": i + 1,
+                        "camber_ratio": self.flap_cambers[i],
+                        "thickness_ratio": 0.10 + i * 0.015,  # Progressive thinning
+                        "trailing_edge_thickness_mm": max(1.5, 2.5 - i * 0.3)
+                    }
+                    for i in range(self.flap_count)
+                ]
+            },
+            
+            "multi_element_interactions": {
+                "slot_gaps_mm": self.flap_slot_gaps,
+                "slot_gap_to_chord_ratios": [
+                    self.flap_slot_gaps[i] / self.flap_root_chords[i]
+                    for i in range(self.flap_count)
+                ],
+                "overlap_ratios": [
+                    self.flap_horizontal_offsets[i] / self.flap_root_chords[i]
+                    for i in range(self.flap_count)
+                ],
+                "vertical_separation_ratios": [
+                    self.flap_vertical_offsets[i] / self.root_chord
+                    for i in range(self.flap_count)
+                ],
+                "progressive_angles_enabled": self.flap_angle_progression
+            },
+            
+            "endplate_features": {
+                "height_mm": self.endplate_height,
+                "max_width_mm": self.endplate_max_width,
+                "min_width_mm": self.endplate_min_width,
+                "thickness_base_mm": self.endplate_thickness_base,
+                "forward_lean_deg": self.endplate_forward_lean,
+                "rearward_sweep_deg": self.endplate_rearward_sweep,
+                "outboard_wrap_deg": self.endplate_outboard_wrap
+            },
+            
+            "y250_vortex_region": {
+                "width_mm": self.y250_width,
+                "step_height_mm": self.y250_step_height,
+                "transition_length_mm": self.y250_transition_length,
+                "central_slot_width_mm": self.central_slot_width
+            },
+            
+            "footplate_features": {
+                "extension_mm": self.footplate_extension,
+                "height_mm": self.footplate_height,
+                "arch_radius_mm": self.arch_radius,
+                "thickness_mm": self.footplate_thickness
+            },
+            
+            "strakes": {
+                "count": self.primary_strake_count,
+                "heights_mm": self.strake_heights
+            },
+            
+            "mounting_system": {
+                "pylon_count": self.pylon_count,
+                "pylon_spacing_mm": self.pylon_spacing,
+                "pylon_major_axis_mm": self.pylon_major_axis,
+                "pylon_minor_axis_mm": self.pylon_minor_axis,
+                "pylon_length_mm": self.pylon_length
+            },
+            
+            "cascade_elements": {
+                "enabled": self.cascade_enabled,
+                "primary_cascade": {
+                    "span_mm": self.primary_cascade_span,
+                    "chord_mm": self.primary_cascade_chord
+                },
+                "secondary_cascade": {
+                    "span_mm": self.secondary_cascade_span,
+                    "chord_mm": self.secondary_cascade_chord
+                }
+            },
+            
+            "aerodynamic_features": {
+                "gurney_flaps_enabled": self.gurney_flaps,
+                "aerodynamic_slots_enabled": self.aerodynamic_slots,
+                "realistic_surface_curvature": self.realistic_surface_curvature,
+                "enhanced_endplate_detail": self.enhanced_endplate_detail,
+                "wing_flex_simulation": self.wing_flex_simulation
+            },
+            
+            "manufacturing_parameters": {
+                "wall_thickness_structural_mm": self.wall_thickness_structural,
+                "wall_thickness_aerodynamic_mm": self.wall_thickness_aerodynamic,
+                "wall_thickness_details_mm": self.wall_thickness_details,
+                "minimum_radius_mm": self.minimum_radius
+            },
+            
+            "material_properties": {
+                "material": self.material,
+                "density_kg_m3": self.density,
+                "estimated_weight_kg": self.weight_estimate
+            },
+            
+            "performance_targets": {
+                "target_downforce_N": self.target_downforce,
+                "target_drag_N": self.target_drag,
+                "efficiency_factor": self.efficiency_factor,
+                "design_speed_kmh": 300
+            },
+            
+            "cfd_recommended_settings": {
+                "reference_length_m": self.root_chord / 1000,
+                "reference_area_m2": total_reference_area,
+                "reference_point_mm": [0, 0, self.endplate_height / 2],
+                "recommended_test_speeds_kmh": [50, 100, 150, 200, 250, 300, 350],
+                "recommended_aoa_range_deg": [-8, -5, -2, 0, 2, 5, 8, 12, 15, 20],
+                "recommended_ground_clearances_mm": [25, 50, 75, 100, 125, 150, 200],
+                "reynolds_number_at_300kmh": (300 / 3.6) * (self.root_chord / 1000) / 1.5e-5,
+                "expected_downforce_coefficient_range": [-2.5, -4.5],
+                "expected_drag_coefficient_range": [0.4, 0.8],
+                "expected_efficiency_ld_ratio": [3.0, 6.0]
+            },
+            
+            "mesh_quality_targets": {
+                "resolution_span": self.resolution_span,
+                "resolution_chord": self.resolution_chord,
+                "mesh_density": self.mesh_density,
+                "surface_smoothing_enabled": self.surface_smoothing
+            }
+        }
+        
+        # Save to JSON file
+        try:
+            with open(json_filename, 'w') as f:
+                json.dump(cfd_params, f, indent=2)
+            
+            print(f"\n✅ CFD parameters exported to: {json_filename}")
+            print(f"   - Total elements: {self.flap_count + 1}")
+            print(f"   - Reference area: {total_reference_area:.4f} m²")
+            print(f"   - Main chord: {self.root_chord} mm")
+            print(f"   - Total span: {self.total_span} mm")
+            print(f"   - Ready for CFD analysis")
+            
+            return json_filename
+            
+        except Exception as e:
+            print(f"❌ Failed to export CFD parameters: {str(e)}")
+            return None
 
     def generate_complete_wing(self, filename="ultra_realistic_f1_frontwing.stl"):
         """Enhanced complete wing generation with improved realism"""
@@ -1191,6 +1410,16 @@ class UltraRealisticF1FrontWingGenerator:
                     for key, value in compliance.items():
                         status = "✓ PASS" if value == True else "⚠ CHECK" if value == False else f"• {value}"
                         print(f"{key}: {status}")
+
+                    try:
+                        # Export CFD parameters automatically
+                        param_filename = filename.replace('.stl', '_cfd_params.json')
+                        param_fullpath = os.path.join('f1_wing_output', param_filename)
+                        self.export_cfd_parameters(param_fullpath)
+                    except Exception as e:
+                        print(f"Warning: Could not export CFD parameters: {str(e)}")
+
+                    # return wingmesh
                     
                     return wing_mesh
                 else:

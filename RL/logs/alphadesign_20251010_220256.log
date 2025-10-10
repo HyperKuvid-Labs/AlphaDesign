@@ -1,0 +1,8 @@
+2025-10-10 22:02:56,797 - AlphaDesign - INFO - ✅ Directory ready: checkpoints
+2025-10-10 22:02:56,798 - AlphaDesign - INFO - ✅ Directory ready: best_designs
+2025-10-10 22:02:56,798 - AlphaDesign - INFO - ✅ Directory ready: neural_networks
+2025-10-10 22:02:56,798 - AlphaDesign - INFO - ✅ Directory ready: generation_data
+2025-10-10 22:02:56,798 - AlphaDesign - INFO - ✅ Directory ready: stl_outputs
+2025-10-10 22:02:56,799 - AlphaDesign - INFO - 🏁 Starting AlphaDesign Complete Pipeline
+2025-10-10 22:02:56,799 - AlphaDesign - INFO - 🔧 Initializing Pipeline Components
+2025-10-10 22:02:56,807 - AlphaDesign - ERROR - 💥 Pipeline failed: LayerNorm.__init__() missing 1 required positional argument: 'normalized_shape'

@@ -19,8 +19,10 @@ class NetworkInitializer:
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
             elif isinstance(module, nn.LayerNorm):
-                nn.init.zeros_(module.weight)
-                nn.init.ones_(module.bias)
+                if module.weight is not None:
+                    nn.init.ones_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
     
     @staticmethod
     def setup_network(design_param_count, device="cpu", hidden_dim=256, depth=3):

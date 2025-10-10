@@ -11,14 +11,29 @@ import warnings
 warnings.filterwarnings('ignore')
 
 class STLWingAnalyzer:
-    def __init__(self, stl_file_path):
+    def __init__(self, stl_file_path, cfd_params_json=None):
         """
         Complete STL-based F1 Wing CFD Analysis System
         Enhanced with proper angle of attack modeling and F1-specific parameters
+        
+        Args:
+            stl_file_path: Path to STL mesh file
+            cfd_params_json: Optional path to CFD parameters JSON from wing generator
         """
         self.stl_file_path = stl_file_path
+        self.cfd_params_json = cfd_params_json
+        self.cfd_params = None
         self.mesh = None
         self.wing_data = {}
+        
+        # Load CFD parameters if provided
+        if cfd_params_json and os.path.exists(cfd_params_json):
+            print(f"📋 Loading CFD parameters from: {cfd_params_json}")
+            with open(cfd_params_json, 'r') as f:
+                self.cfd_params = json.load(f)
+            print(f"✅ Parameters loaded - {self.cfd_params['geometry']['total_elements']} elements detected")
+        else:
+            print("⚠️ No CFD parameters file - will use auto-detection (less accurate)")
         
         # Analysis Parameters
         self.air_density = 1.225  # kg/m³ at sea level
@@ -90,8 +105,8 @@ class STLWingAnalyzer:
             raise
 
     def extract_wing_geometry(self):
-        """Extract wing geometric parameters from STL mesh"""
-        print("\n🔍 EXTRACTING WING GEOMETRY FROM STL MESH")
+        """Extract wing geometric parameters - from JSON if available, otherwise from STL"""
+        print("\n🔍 EXTRACTING WING GEOMETRY")
         print("-" * 50)
         
         vertices = self.mesh.vertices
@@ -102,30 +117,86 @@ class STLWingAnalyzer:
         z_range = self.mesh_bounds[1][2] - self.mesh_bounds[0][2]  # Height direction
         
         print(f"📐 Mesh Dimensions:")
-        print(f" - X-range (chord): {x_range*1000:.1f} mm")
-        print(f" - Y-range (span): {y_range*1000:.1f} mm")  
-        print(f" - Z-range (height): {z_range*1000:.1f} mm")
+        print(f"   - X-range (chord): {x_range*1000:.1f} mm")
+        print(f"   - Y-range (span): {y_range*1000:.1f} mm")  
+        print(f"   - Z-range (height): {z_range*1000:.1f} mm")
         
         # Extract wing span (assume Y is span direction)
         self.wingspan = y_range
-        print(f"🏁 Wing Span: {self.wingspan*1000:.1f} mm")
         
-        # Find wing elements by analyzing Z-height distribution
-        self.identify_wing_elements(vertices)
+        # Use JSON parameters if available
+        if self.cfd_params:
+            print("\n✅ Using accurate parameters from wing generator JSON")
+            self.load_geometry_from_json()
+        else:
+            print("\n⚠️ Auto-detecting geometry from STL (less accurate)")
+            self.extract_geometry_from_stl(vertices)
         
         # Extract cross-sections at different span stations
         self.extract_cross_sections(vertices)
         
-        # Calculate reference area
-        self.reference_area = self.calculate_reference_area()
-        print(f"📏 Reference Area: {self.reference_area:.4f} m²")
+        # Calculate reference area (from JSON or calculated)
+        if self.cfd_params:
+            self.reference_area = self.cfd_params['geometry']['total_reference_area_m2']
+            print(f"📏 Reference Area (from JSON): {self.reference_area:.4f} m²")
+        else:
+            self.reference_area = self.calculate_reference_area()
+            print(f"📏 Reference Area (calculated): {self.reference_area:.4f} m²")
         
         # Calculate aspect ratio
         self.aspect_ratio = (self.wingspan ** 2) / self.reference_area
+        print(f"🏁 Wing Span: {self.wingspan*1000:.1f} mm")
         print(f"📊 Aspect Ratio: {self.aspect_ratio:.2f}")
 
     def identify_wing_elements(self, vertices):
-        """Identify individual wing elements from mesh"""
+        """Identify individual wing elements from mesh (fallback method)"""
+        print("\n🔎 Identifying Wing Elements...")
+        
+        # This is now the fallback method - renamed to extract_geometry_from_stl
+        self.extract_geometry_from_stl(vertices)
+
+    def load_geometry_from_json(self):
+        """Load accurate geometry parameters from wing generator JSON"""
+        params = self.cfd_params
+        
+        # Main element
+        main = params['geometry']['main_element']
+        self.num_elements = params['geometry']['total_elements']
+        
+        # Initialize arrays
+        self.chord_lengths = [main['root_chord_mm'] / 1000]  # Convert to meters
+        self.element_base_angles = [0]  # Main element at 0° baseline
+        self.element_cambers = [params['airfoil_properties']['main_element']['camber_ratio']]
+        self.element_thickness_ratios = [params['airfoil_properties']['main_element']['max_thickness_ratio']]
+        self.element_areas = [main['reference_area_m2']]
+        
+        # Flap elements
+        for i, flap in enumerate(params['geometry']['flaps']):
+            self.chord_lengths.append(flap['root_chord_mm'] / 1000)
+            self.element_base_angles.append(flap['geometric_angle_deg'])
+            self.element_cambers.append(flap['camber_ratio'])
+            self.element_thickness_ratios.append(params['airfoil_properties']['flaps'][i]['thickness_ratio'])
+            self.element_areas.append(flap['reference_area_m2'])
+        
+        # Store slot gap and overlap information
+        self.slot_gaps_mm = params['multi_element_interactions']['slot_gaps_mm']
+        self.slot_gap_ratios = params['multi_element_interactions']['slot_gap_to_chord_ratios']
+        self.overlap_ratios = params['multi_element_interactions']['overlap_ratios']
+        
+        # Store element Z-levels for compatibility (estimate based on vertical offsets)
+        self.element_z_levels = [0]  # Main element at 0
+        for i, flap in enumerate(params['geometry']['flaps']):
+            z_level = flap['vertical_offset_mm'] / 1000  # Convert to meters
+            self.element_z_levels.append(z_level)
+        
+        print(f"✅ Loaded {self.num_elements} elements from JSON:")
+        for i in range(self.num_elements):
+            print(f"   Element {i+1}: Chord={self.chord_lengths[i]*1000:.1f}mm, "
+                  f"Angle={self.element_base_angles[i]:.1f}°, "
+                  f"Camber={self.element_cambers[i]:.3f}")
+
+    def extract_geometry_from_stl(self, vertices):
+        """Fallback: Extract geometry from STL when no JSON available"""
         print("\n🔎 Identifying Wing Elements...")
         
         # Analyze Z-coordinate distribution to find elements
@@ -175,6 +246,11 @@ class STLWingAnalyzer:
                 self.element_areas.append(area)
                 
                 print(f" Element {i+1}: Chord={chord_length*1000:.1f}mm, Base Angle={base_angle:.1f}°, Camber={camber:.3f}")
+        
+        # Estimate slot gaps and overlaps (less accurate without JSON)
+        self.slot_gaps_mm = [12, 11, 10]  # Default estimates
+        self.slot_gap_ratios = [0.06, 0.065, 0.07]  # Default estimates
+        self.overlap_ratios = [0.15, 0.25, 0.35]  # Default estimates
 
     def calculate_element_camber(self, element_vertices):
         """Calculate camber of wing element"""
@@ -560,17 +636,51 @@ class STLWingAnalyzer:
         return min(ground_factor, 2.5)
 
     def calculate_slot_effect(self, element_idx):
-        """Calculate slot effect between wing elements"""
+        """Calculate slot effect using actual gap and overlap data"""
         if element_idx == 0:
-            return 1.0  # No slot effect for main element
+            return {
+                'cl_multiplier': 1.0,
+                'cd_multiplier': 1.0,
+                'velocity_ratio': 1.0,
+                'efficiency': 1.0
+            }
         
-        # Slot gap effect (simplified)
-        base_slot_effect = 1.15 + 0.05 * element_idx
+        # Get actual slot parameters
+        flap_idx = element_idx - 1
         
-        # Reduced effectiveness for downstream elements
-        slot_decay = 0.95 ** (element_idx - 1)
+        if hasattr(self, 'slot_gap_ratios') and flap_idx < len(self.slot_gap_ratios):
+            gap_ratio = self.slot_gap_ratios[flap_idx]
+            overlap_ratio = self.overlap_ratios[flap_idx]
+        else:
+            # Fallback to estimates
+            gap_ratio = 0.02 + 0.005 * flap_idx
+            overlap_ratio = 0.1 + 0.05 * flap_idx
         
-        return base_slot_effect * slot_decay
+        # Physics-based slot effect model
+        optimal_gap = 0.02  # 2% of chord
+        gap_efficiency = np.exp(-((gap_ratio - optimal_gap) / 0.01)**2)
+        
+        # Optimal overlap ratio 5-15% for F1
+        overlap_efficiency = 1.0 if 0.05 <= overlap_ratio <= 0.15 else 0.8
+        
+        # Circulation augmentation from upstream element
+        circulation_boost = 1.3 + 0.15 * gap_efficiency * overlap_efficiency
+        
+        # Velocity ratio through slot (typical 1.4-1.8x for F1)
+        velocity_ratio = 1.4 + 0.4 * gap_efficiency
+        
+        # Combined slot effect on downstream element CL
+        slot_cl_multiplier = circulation_boost * np.sqrt(velocity_ratio)
+        
+        # Drag reduction from energy addition
+        slot_cd_multiplier = 0.85 + 0.15 * gap_efficiency
+        
+        return {
+            'cl_multiplier': slot_cl_multiplier,
+            'cd_multiplier': slot_cd_multiplier,
+            'velocity_ratio': velocity_ratio,
+            'efficiency': gap_efficiency
+        }
 
     def multi_element_analysis(self, speed_ms, ground_clearance_mm, wing_angle_deg=0, 
                                   setup_angles=None, environmental_conditions=None):
@@ -638,7 +748,9 @@ class STLWingAnalyzer:
             ground_effect = self.calculate_ground_effect(ground_clearance_mm, i)
             
             # Slot effect
-            slot_effect = self.calculate_slot_effect(i)
+            slot_effect_data = self.calculate_slot_effect(i)
+            slot_effect = slot_effect_data['cl_multiplier']  # For CL
+            slot_cd_effect = slot_effect_data['cd_multiplier']  # For CD
             
             # Calculate coefficients
             cl_element = self.enhanced_airfoil_lift_coefficient(effective_angle, i, mach_number)
@@ -646,7 +758,7 @@ class STLWingAnalyzer:
             
             # Apply ground effect and slot effect
             cl_element *= ground_effect * slot_effect
-            cd_element *= (1 + 0.05 * (ground_effect - 1))  # Slight drag increase with ground effect
+            cd_element *= (1 + 0.05 * (ground_effect - 1)) * slot_cd_effect
             
             # Crosswind effects
             if environmental_conditions['crosswind'] > 0:
@@ -678,6 +790,10 @@ class STLWingAnalyzer:
             total_sideforce += element_sideforce
             moment_sum += element_moment
             
+            # Store slot effect details
+            element_slot_efficiency = slot_effect_data['efficiency']
+            element_velocity_ratio = slot_effect_data['velocity_ratio']
+            
             # Store element data
             results['elements'].append({
                 'element_number': i + 1,
@@ -694,6 +810,8 @@ class STLWingAnalyzer:
                 'moment_Nm': element_moment,
                 'ground_effect_factor': ground_effect,
                 'slot_effect_factor': slot_effect,
+                'slot_efficiency': element_slot_efficiency,  # NEW
+                'slot_velocity_ratio': element_velocity_ratio,  # NEW
                 'camber': camber,
                 'thickness_ratio': thickness,
                 'element_area_m2': element_area
@@ -1061,6 +1179,46 @@ class STLWingAnalyzer:
         metrics['overall_performance_index'] = np.mean(ratings)
         
         return metrics
+
+    def generate_comparison_report(self):
+        """Generate report comparing JSON vs auto-detected parameters"""
+        if not self.cfd_params:
+            print("⚠️ No JSON parameters loaded - cannot generate comparison")
+            return
+        
+        print("\n📊 PARAMETER COMPARISON: JSON vs AUTO-DETECTION")
+        print("=" * 60)
+        
+        # Load parameters from JSON
+        json_elements = self.cfd_params['geometry']['total_elements']
+        json_area = self.cfd_params['geometry']['total_reference_area_m2']
+        json_chords = [self.cfd_params['geometry']['main_element']['root_chord_mm']]
+        json_chords.extend([f['root_chord_mm'] for f in self.cfd_params['geometry']['flaps']])
+        
+        print(f"\n{'Parameter':<30} {'JSON (Accurate)':<20} {'Auto-Detect':<20}")
+        print("-" * 70)
+        print(f"{'Number of Elements':<30} {json_elements:<20} {self.num_elements:<20}")
+        print(f"{'Reference Area (m²)':<30} {json_area:<20.4f} {self.reference_area:<20.4f}")
+        
+        print(f"\n{'Element Chords (mm):':<30}")
+        for i in range(min(len(json_chords), len(self.chord_lengths))):
+            json_val = json_chords[i]
+            detected_val = self.chord_lengths[i] * 1000
+            diff_pct = abs(json_val - detected_val) / json_val * 100
+            status = "✅" if diff_pct < 5 else "⚠️"
+            print(f"  Element {i+1:<23} {json_val:<20.1f} {detected_val:<20.1f} {status} ({diff_pct:.1f}%)")
+        
+        print(f"\n{'Element Angles (deg):':<30}")
+        json_angles = [0] + [f['geometric_angle_deg'] for f in self.cfd_params['geometry']['flaps']]
+        for i in range(min(len(json_angles), len(self.element_base_angles))):
+            json_val = json_angles[i]
+            detected_val = self.element_base_angles[i]
+            diff = abs(json_val - detected_val)
+            status = "✅" if diff < 2 else "⚠️"
+            print(f"  Element {i+1:<23} {json_val:<20.1f} {detected_val:<20.1f} {status} (Δ{diff:.1f}°)")
+        
+        print("\n" + "=" * 70)
+        print("✅ = Good agreement  |  ⚠️ = Significant difference")
 
     # [Rest of the methods remain the same - generate_detailed_report, save_analysis_results, etc.]
     # I'll include the key ones that need updates:
@@ -1786,89 +1944,64 @@ class F1CFDPipeline:
 
 # Updated main execution block
 if __name__ == "__main__":
-    print("🏁 ENHANCED F1 CFD PIPELINE WITH WIND TUNNEL CORRELATION")
+    print("🏁 ENHANCED F1 CFD PIPELINE WITH ACCURATE PARAMETERS")
     print("=" * 80)
     
-    STL_FILE = "generation_1960_best_design.stl"   # update as required
+    # UPDATE THESE PATHS
+    STL_FILE = "f1_wing_output/my_f1_wing.stl"
+    JSON_FILE = "f1_wing_output/my_f1_wing_cfd_params.json"
     
     try:
-        # Initialize pipeline
+        # Initialize with JSON parameters
         pipeline = F1CFDPipeline(STL_FILE, tunnel_scale=0.6)
+        
+        # Initialize analyzer with parameters
+        print("\n🔧 Initializing analyzer with accurate parameters...")
+        analyzer = STLWingAnalyzer(STL_FILE, cfd_params_json=JSON_FILE)
+        
+        # Generate comparison report
+        analyzer.generate_comparison_report()
+        
+        # Run analysis
+        print("\n🚀 Running comprehensive analysis with accurate parameters...")
+        results = analyzer.run_comprehensive_f1_analysis()
         
         if not pipeline.mesh_ok:
             print("⚠️ Mesh quality issues detected - proceeding with caution")
         
-        print("\n🚀 Running high-fidelity CFD pipeline...")
-        hi_res = pipeline.run_high_fidelity_cfd(speed_list_kmh=[150, 200, 250, 300])
-        
         print("\n🌬️ Correlating with 60% wind-tunnel model at 200 km/h...")
         correlation = pipeline.correlate_with_tunnel(speed_kmh=200, angle_deg=0, ride_height_mm=75)
         
-        # Run tunnel sweep for validation
-        print("\n🔄 Running tunnel validation sweep...")
-        tunnel_sweep = pipeline.rig.run_tunnel_sweep(
-            pipeline.analyzer,
-            speed_range_kmh=[150, 200, 250],
-            angle_range_deg=[-5, 0, 5, 10],
-            ride_height_mm=75
-        )
-        
-        # Display results
-        print("\n📊 HIGH-FIDELITY CFD RESULTS")
+        # Display comprehensive analysis results
+        print("\n📊 COMPREHENSIVE ANALYSIS RESULTS")
         print("-" * 40)
-        for r in hi_res:
-            quality = "✅" if r['solution_quality']['converged'] else "⚠️"
-            print(f" {quality} {r['speed_kmh']} km/h → DF {r['downforce_N']:.0f} N, "
-                  f"Drag {r['drag_N']:.0f} N, L/D {r['L/D']:.2f}")
-            print(f"     Mesh: {r['mesh_elements']:,} elements, "
-                  f"Runtime: {r['computational_time_hours']:.1f}h")
         
-        print("\n🔄 CFD ↔ TUNNEL ↔ TRACK CORRELATION (200 km/h)")
-        print("-" * 50)
-        corr = correlation
-        print(f"CFD Full-Scale:")
-        print(f"   Downforce: {corr['CFD_full_scale']['downforce_N']:.0f} N")
-        print(f"   Drag: {corr['CFD_full_scale']['drag_N']:.0f} N")
-        print(f"   L/D: {corr['CFD_full_scale']['efficiency_LD']:.2f}")
+        # Speed sweep summary
+        if 'speed_sweep' in results['optimal_settings']:
+            opt = results['optimal_settings']
+            print(f"\n🎯 OPTIMAL SETTINGS:")
+            print(f"   Max Efficiency Speed: {opt['max_efficiency_speed_kmh']} km/h (L/D: {opt['max_efficiency_LD']:.2f})")
+            print(f"   Max Downforce Speed: {opt['max_downforce_speed_kmh']} km/h ({opt['max_downforce_N']:.0f} N)")
+            print(f"   Optimal Ground Clearance: {opt['optimal_ground_clearance_mm']} mm")
+            print(f"   Optimal Wing Angle: {opt['optimal_wing_angle_deg']:.1f}°")
         
-        print(f"\nTunnel Prediction (corrected):")
-        print(f"   Downforce: {corr['tunnel_scaled']['corrected_downforce_N']:.0f} N")
-        print(f"   Drag: {corr['tunnel_scaled']['corrected_drag_N']:.0f} N")
-        print(f"   L/D: {corr['tunnel_scaled']['efficiency_LD']:.2f}")
+        # F1 Performance Metrics
+        if 'f1_performance_metrics' in results:
+            metrics = results['f1_performance_metrics']
+            print(f"\n📈 F1 PERFORMANCE RATINGS:")
+            print(f"   Efficiency Rating: {metrics['efficiency_rating']:.1f}/10")
+            print(f"   Downforce Rating: {metrics['downforce_rating']:.1f}/10")
+            print(f"   Stability Rating: {metrics['stability_rating']:.1f}/10")
+            print(f"   Ground Effect Rating: {metrics['ground_effect_rating']:.1f}/10")
+            print(f"   Overall Index: {metrics['overall_performance_index']:.1f}/10")
         
-        print(f"\nTrack Prediction:")
-        print(f"   Downforce: {corr['track_prediction']['downforce_N']:.0f} N")
-        print(f"   Drag: {corr['track_prediction']['drag_N']:.0f} N")
-        print(f"   L/D: {corr['track_prediction']['efficiency_LD']:.2f}")
-        
-        print(f"\nCorrelation Quality:")
-        print(f"   DF Difference: {corr['correlation_metrics']['cfd_tunnel_downforce_diff_percent']:.1f}%")
-        print(f"   Drag Difference: {corr['correlation_metrics']['cfd_tunnel_drag_diff_percent']:.1f}%")
-        print(f"   Confidence: {corr['correlation_metrics']['confidence_level']}")
-        
-        print("\n🎯 TUNNEL SWEEP VALIDATION")
-        print("-" * 30)
-        for result in tunnel_sweep[:6]:  # Show first 6 results
-            print(f" {result['speed_kmh']} km/h, {result['angle_deg']:+.0f}° → "
-                  f"DF {result['downforce_N']:.0f} N, L/D {result['efficiency_LD']:.2f} "
-                  f"({result['tunnel_quality']})")
-        
-        # Export for optimization
-        optimization_data = pipeline.export_to_optimization_loop(hi_res)
-        
-        print(f"\n📈 OPTIMIZATION TARGETS")
-        print("-" * 25)
-        opt = optimization_data['objective_functions']
-        print(f"Max Downforce: {opt['max_downforce']:.0f} N")
-        print(f"Peak Efficiency: {opt['max_efficiency']:.2f}")
-        print(f"Min Drag: {opt['min_drag']:.0f} N")
-        
-        print("\n✅ Complete F1 CFD Pipeline finished successfully!")
+        print("\n✅ Complete F1 CFD Pipeline with accurate parameters finished successfully!")
         print("   Ready for optimization loop or design iteration")
         
-    except FileNotFoundError:
-        print(f"❌ STL file not found: {STL_FILE}")
-        print("Please update the file path in the script")
+    except FileNotFoundError as e:
+        print(f"❌ File not found: {e}")
+        print("Make sure both STL and JSON files exist")
     except Exception as e:
-        print(f"❌ Pipeline failed: {e}")
-        print("Check STL file format and dependencies")
+        print(f"❌ Analysis failed: {e}")
+        import traceback
+        traceback.print_exc()

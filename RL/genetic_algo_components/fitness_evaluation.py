@@ -9,11 +9,16 @@ import tempfile
 import signal
 
 class FitnessEval:
-    def __init__(self, weight_constraints=0.3, weight_perf=0.4, weight_cfd=0.3):
+    def __init__(self, weight_constraints=0.3, weight_perf=0.4, weight_cfd=0.3, cfd_results_dir=None):
         self.weight_constraints = weight_constraints
         self.weight_perf = weight_perf
         self.weight_cfd = weight_cfd
         self.temp_dir = tempfile.mkdtemp()
+        
+        # CFD results output directory
+        self.cfd_results_dir = cfd_results_dir or "cfd_results"
+        os.makedirs(self.cfd_results_dir, exist_ok=True)
+        self.generation_num = 0
         
         # Enhanced fitness evaluation parameters
         self.advanced_validation_weights = {
@@ -391,6 +396,8 @@ class FitnessEval:
     def evaluate_cfd_perf(self, individual: Dict, individual_idx: int):
         try:
             from cfd_analysis import STLWingAnalyzer
+            import json
+            from datetime import datetime
             
             cfd_dir = "cfd_temp_files"
             os.makedirs(cfd_dir, exist_ok=True)
@@ -415,6 +422,9 @@ class FitnessEval:
                 speed_ms = analyzer.convert_speed_to_ms(200)  # 200 km/h test speed
                 cfd_result = analyzer.multi_element_analysis(speed_ms, 75, 0)
                 
+                # Save CFD results to file
+                self._save_cfd_results(cfd_result, individual_idx, individual)
+                
                 # Enhanced CFD results with additional metrics
                 return {
                     'cfd_downforce': float(cfd_result['total_downforce']),
@@ -432,6 +442,54 @@ class FitnessEval:
         except Exception as e:
             print(f"❌ Enhanced CFD evaluation failed: {str(e)}")
             return self.get_default_cfd_score()
+    
+    def _save_cfd_results(self, cfd_result, individual_idx, individual):
+        """Save CFD results to JSON file for later analysis"""
+        try:
+            import json
+            from datetime import datetime
+            
+            # Create filename with generation and individual info
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"gen{self.generation_num:03d}_ind{individual_idx:03d}_cfd_results.json"
+            filepath = os.path.join(self.cfd_results_dir, filename)
+            
+            # Prepare summary data
+            summary = {
+                'timestamp': timestamp,
+                'generation': self.generation_num,
+                'individual_idx': individual_idx,
+                'design_parameters': {
+                    'total_span': individual.get('total_span'),
+                    'root_chord': individual.get('root_chord'),
+                    'flap_count': individual.get('flap_count'),
+                    'endplate_height': individual.get('endplate_height')
+                },
+                'performance': {
+                    'total_downforce_N': float(cfd_result['total_downforce']),
+                    'total_drag_N': float(cfd_result['total_drag']),
+                    'total_sideforce_N': float(cfd_result['total_sideforce']),
+                    'efficiency_ratio': float(cfd_result['efficiency_ratio']),
+                    'center_of_pressure_m': float(cfd_result['center_of_pressure']),
+                    'pitching_moment_Nm': float(cfd_result['pitching_moment'])
+                },
+                'f1_metrics': cfd_result['f1_specific_metrics'],
+                'flow_characteristics': cfd_result['flow_characteristics'],
+                'elements': cfd_result['elements']
+            }
+            
+            # Write to file
+            with open(filepath, 'w') as f:
+                json.dump(summary, f, indent=2, default=str)
+            
+            print(f"   💾 CFD results saved to: {filename}")
+            
+        except Exception as e:
+            print(f"   ⚠️ Failed to save CFD results: {str(e)}")
+    
+    def set_generation(self, generation_num):
+        """Set current generation number for CFD result tracking"""
+        self.generation_num = generation_num
     
     def _assess_cfd_quality(self, cfd_result):
         """Assess CFD result quality"""

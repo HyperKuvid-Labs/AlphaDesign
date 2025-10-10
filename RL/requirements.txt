@@ -18,7 +18,7 @@ plotly
 seaborn
 memory-profiler
 joblib
-torch-audio
+torchaudio
 torchvision
 sphinx
 sphinx-rtd-theme
@@ -27,5 +27,3 @@ ipykernel
 black
 flake8
 mypy
-pytest
-pytest-cov

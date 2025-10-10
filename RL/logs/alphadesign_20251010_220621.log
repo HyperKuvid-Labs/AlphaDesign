@@ -1,0 +1,42 @@
+2025-10-10 22:06:21,756 - AlphaDesign - INFO - ✅ Directory ready: checkpoints
+2025-10-10 22:06:21,757 - AlphaDesign - INFO - ✅ Directory ready: best_designs
+2025-10-10 22:06:21,757 - AlphaDesign - INFO - ✅ Directory ready: neural_networks
+2025-10-10 22:06:21,757 - AlphaDesign - INFO - ✅ Directory ready: generation_data
+2025-10-10 22:06:21,758 - AlphaDesign - INFO - ✅ Directory ready: stl_outputs
+2025-10-10 22:06:21,758 - AlphaDesign - INFO - 🏁 Starting AlphaDesign Complete Pipeline
+2025-10-10 22:06:21,758 - AlphaDesign - INFO - 🔧 Initializing Pipeline Components
+2025-10-10 22:06:23,166 - AlphaDesign - INFO - 🧠 Neural Network initialized: 736241 parameters
+2025-10-10 22:06:23,167 - AlphaDesign - INFO - ✅ Components initialized. Population size: 3
+2025-10-10 22:06:23,167 - AlphaDesign - INFO - 🔄 Starting Optimization Loop
+2025-10-10 22:06:25,352 - AlphaDesign - INFO - 💾 Best design saved: stl_outputs\generation_000_best_design.stl
+2025-10-10 22:06:26,918 - AlphaDesign - INFO - ✅ Generation 0: Best=70.00, Avg=40.00, Time=3.7s
+2025-10-10 22:06:27,007 - AlphaDesign - INFO - 💾 Saving checkpoint for generation 0...
+2025-10-10 22:06:27,018 - AlphaDesign - INFO - 🧠 Neural network saved: neural_networks\network_gen_000.pth
+2025-10-10 22:06:27,021 - AlphaDesign - INFO - ✅ Checkpoint saved successfully: checkpoints\checkpoint_gen_000.json
+2025-10-10 22:06:27,021 - AlphaDesign - INFO - 📊 Checkpoint size: 0.02 MB
+2025-10-10 22:06:27,119 - AlphaDesign - WARNING - ⚠️ Memory usage high: 93.5%
+2025-10-10 22:06:27,119 - AlphaDesign - INFO - 📚 Curriculum Phase: Constraint Focus (Epochs: 40)
+2025-10-10 22:06:27,194 - AlphaDesign - INFO - 🧠 Epoch 0/40, Avg Loss: 74.1779
+2025-10-10 22:06:27,327 - AlphaDesign - INFO - 🧠 Epoch 10/40, Avg Loss: 0.0363
+2025-10-10 22:06:27,455 - AlphaDesign - INFO - 🧠 Epoch 20/40, Avg Loss: 0.9685
+2025-10-10 22:06:27,592 - AlphaDesign - INFO - 🧠 Epoch 30/40, Avg Loss: 0.5060
+2025-10-10 22:06:27,714 - AlphaDesign - INFO - ✅ Extended neural network training completed - 40 epochs
+2025-10-10 22:06:27,798 - AlphaDesign - WARNING - ⚠️ Memory usage high: 93.7%
+2025-10-10 22:06:31,713 - AlphaDesign - INFO - 💾 Best design saved: stl_outputs\generation_001_best_design.stl
+2025-10-10 22:06:34,957 - AlphaDesign - INFO - ✅ Generation 1: Best=70.00, Avg=55.00, Time=7.2s
+2025-10-10 22:06:35,045 - AlphaDesign - INFO - 💾 Saving checkpoint for generation 1...
+2025-10-10 22:06:35,054 - AlphaDesign - INFO - 🧠 Neural network saved: neural_networks\network_gen_001.pth
+2025-10-10 22:06:35,058 - AlphaDesign - INFO - ✅ Checkpoint saved successfully: checkpoints\checkpoint_gen_001.json
+2025-10-10 22:06:35,058 - AlphaDesign - INFO - 📊 Checkpoint size: 0.02 MB
+2025-10-10 22:06:35,146 - AlphaDesign - WARNING - ⚠️ Memory usage high: 93.5%
+2025-10-10 22:06:40,700 - AlphaDesign - INFO - 💾 Best design saved: stl_outputs\generation_002_best_design.stl
+2025-10-10 22:06:45,532 - AlphaDesign - INFO - ✅ Generation 2: Best=70.00, Avg=70.00, Time=10.4s
+2025-10-10 22:06:45,614 - AlphaDesign - INFO - 💾 Saving checkpoint for generation 2...
+2025-10-10 22:06:45,623 - AlphaDesign - INFO - 🧠 Neural network saved: neural_networks\network_gen_002.pth
+2025-10-10 22:06:45,626 - AlphaDesign - INFO - ✅ Checkpoint saved successfully: checkpoints\checkpoint_gen_002.json
+2025-10-10 22:06:45,626 - AlphaDesign - INFO - 📊 Checkpoint size: 0.03 MB
+2025-10-10 22:06:45,707 - AlphaDesign - WARNING - ⚠️ Memory usage high: 93.0%
+2025-10-10 22:06:45,799 - AlphaDesign - WARNING - ⚠️ Memory usage high: 93.0%
+2025-10-10 22:06:45,800 - AlphaDesign - INFO - 🏁 Finalizing pipeline...
+2025-10-10 22:06:45,805 - AlphaDesign - INFO - 📊 Summary report saved: checkpoints\final_summary.json
+2025-10-10 22:06:45,805 - AlphaDesign - INFO - ✅ Pipeline completed in 0.01 hours

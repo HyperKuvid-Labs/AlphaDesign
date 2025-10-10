@@ -30,12 +30,12 @@ class ValueHead(nn.Module):
         
         self.layers = nn.Sequential(
             nn.Linear(feature_dim, feature_dim//2),
-            nn.LayerNorm(),
+            nn.LayerNorm(feature_dim//2),
             nn.GELU(),
             nn.Dropout(0.1),
 
             nn.Linear(feature_dim//2, feature_dim//4),
-            nn.LayerNorm(),
+            nn.LayerNorm(feature_dim//4),
             nn.GELU(),
             nn.Dropout(0.05),
 
