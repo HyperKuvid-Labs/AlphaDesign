@@ -121,15 +121,32 @@ class F1FrontWingAnalyzer:
         self.material_fatigue_limit = 800e6  # Pa at 10^6 cycles
         self.safety_factor_required = 3.0  # Higher safety factor for F1
         
-        # F1 regulatory limits (2022-2026 regulations)
-        self.max_wing_span = 1650  # mm
-        self.max_chord_at_centerline = 330  # mm
-        self.min_ground_clearance = 75  # mm
-        self.max_aoa_regulation = 12  # degrees
+        # === FIA 2024 TECHNICAL REGULATIONS (Article 3 - Bodywork) ===
+        # Article 3.3 - Front Wing Regulations
+        self.max_wing_span = 1800  # mm - FIA Article 3.3.1 (updated from 1650)
+        self.max_chord_at_centerline = 330  # mm - FIA Article 3.3.2
+        self.max_wing_height = 325  # mm - FIA Article 3.3.3 (endplate max height)
+        self.min_ground_clearance = 75  # mm - FIA Article 3.7.1
+        self.max_aoa_regulation = 12  # degrees - Practical limit
         
-        # Aerodynamic constants
+        # Article 3.3.6 - Y250 Vortex Region (500mm from centerline)
+        self.y250_region_width = 500  # mm - Must have height step
+        self.y250_min_step_height = 15  # mm - Minimum step down
+        self.y250_max_step_height = 25  # mm - Maximum step down
+        
+        # Article 3.4 - Endplate Regulations
+        self.endplate_max_width = 150  # mm - Maximum depth at any height
+        self.endplate_min_radius = 5  # mm - Minimum edge radius (safety)
+        
+        # Aerodynamic constants for multi-element wings
         self.oswald_efficiency = 0.65  # Realistic for multi-element wing
         self.skin_friction_coefficient = 0.003  # Turbulent flow
+        
+        # Multi-element configuration limits
+        self.max_elements = 5  # Main + 4 flaps (typical F1 configuration)
+        self.min_slot_gap = 8  # mm - Minimum gap between elements
+        self.max_slot_gap = 20  # mm - Maximum gap between elements
+        self.optimal_slot_gap_ratio = 0.012  # 1.2% of chord (aerodynamic optimum)
         
     def compute_advanced_reynolds_effects(self) -> Dict[str, float]:
         """Compute Reynolds number effects on aerodynamic performance"""
