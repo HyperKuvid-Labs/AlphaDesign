@@ -1,5 +1,5 @@
 {
-  "max_generations": 20,
+  "max_generations": 1,
   "population_size": 5,
   "neural_network_enabled": true,
   "save_frequency": 1,

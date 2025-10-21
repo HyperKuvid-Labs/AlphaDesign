@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_date": "2025-10-22T01:47:16.267647",
+    "generated_date": "2025-10-22T01:47:30.575447",
     "generator_version": "UltraRealisticF1FrontWingGenerator v2.0",
     "description": "CFD analysis parameters for multi-element F1 front wing",
     "units": {
@@ -13,17 +13,17 @@
   },
   "geometry": {
     "main_element": {
-      "span_mm": 1600.0,
+      "span_mm": 1747.9365536896603,
       "root_chord_mm": 250.0,
-      "tip_chord_mm": 273.28974791521824,
+      "tip_chord_mm": 248.97567336097669,
       "taper_ratio": 0.89,
-      "sweep_angle_deg": 3.7936541922950426,
-      "dihedral_angle_deg": 2.178665235563215,
+      "sweep_angle_deg": 4.239145447757582,
+      "dihedral_angle_deg": 2.7018685735908234,
       "twist_range_deg": [
         -1.5,
         0.5
       ],
-      "reference_area_m2": 0.4
+      "reference_area_m2": 0.43698413842241507
     },
     "flaps": [
       {
@@ -64,14 +64,14 @@
       }
     ],
     "total_elements": 4,
-    "total_reference_area_m2": 1.218
+    "total_reference_area_m2": 1.2549841384224152
   },
   "airfoil_properties": {
     "main_element": {
       "base_profile": "NACA_64A010_modified",
-      "max_thickness_ratio": 0.15900130894449482,
-      "camber_ratio": 0.09676803758655178,
-      "camber_position": 0.429545483476326,
+      "max_thickness_ratio": 0.13012117856302347,
+      "camber_ratio": 0.09072176816921307,
+      "camber_position": 0.42430384511724367,
       "leading_edge_radius_mm": 2.8,
       "trailing_edge_thickness_mm": 2.5,
       "upper_surface_radius_mm": 800,
@@ -122,9 +122,9 @@
     "progressive_angles_enabled": true
   },
   "endplate_features": {
-    "height_mm": 268.9881271806169,
-    "max_width_mm": 100.0,
-    "min_width_mm": 47.58740222598861,
+    "height_mm": 267.2492028444034,
+    "max_width_mm": 140.76000663210232,
+    "min_width_mm": 39.62926578578964,
     "thickness_base_mm": 10,
     "forward_lean_deg": 6,
     "rearward_sweep_deg": 10,
@@ -132,8 +132,8 @@
   },
   "y250_vortex_region": {
     "width_mm": 500,
-    "step_height_mm": 21.266846651941208,
-    "transition_length_mm": 80.0,
+    "step_height_mm": 15.0,
+    "transition_length_mm": 94.32874682354503,
     "central_slot_width_mm": 30.0
   },
   "footplate_features": {
@@ -193,11 +193,11 @@
   },
   "cfd_recommended_settings": {
     "reference_length_m": 0.25,
-    "reference_area_m2": 1.218,
+    "reference_area_m2": 1.2549841384224152,
     "reference_point_mm": [
       0,
       0,
-      134.49406359030846
+      133.6246014222017
     ],
     "recommended_test_speeds_kmh": [
       50,

@@ -1,18 +1,18 @@
 {
-  "total_span": 1562.1533373404757,
-  "root_chord": 273.62357158832845,
-  "tip_chord": 278.48896342259894,
+  "total_span": 1600.0,
+  "root_chord": 250.0,
+  "tip_chord": 273.28974791521824,
   "chord_taper_ratio": 0.89,
-  "sweep_angle": 3.745137198030256,
-  "dihedral_angle": 2.2760946056221214,
+  "sweep_angle": 3.7936541922950426,
+  "dihedral_angle": 2.178665235563215,
   "twist_distribution_range": [
     -1.5,
     0.5
   ],
   "base_profile": "NACA_64A010_modified",
-  "max_thickness_ratio": 0.17793646219085565,
-  "camber_ratio": 0.09576187755552051,
-  "camber_position": 0.3989658971624493,
+  "max_thickness_ratio": 0.15900130894449482,
+  "camber_ratio": 0.09676803758655178,
+  "camber_position": 0.429545483476326,
   "leading_edge_radius": 2.8,
   "trailing_edge_thickness": 2.5,
   "upper_surface_radius": 800,
@@ -34,28 +34,28 @@
     120
   ],
   "flap_cambers": [
-    0.15165174117856509,
-    0.1183069457274416,
-    0.08502357576454594
+    0.11650730925554174,
+    0.08779492852048842,
+    0.09368265052848934
   ],
   "flap_slot_gaps": [
-    11.997258048354128,
-    12.0,
-    8.870195544962051
+    12.775178833576852,
+    16.42889568935495,
+    13.383572526835122
   ],
   "flap_vertical_offsets": [
-    30.68230323781692,
-    53.180424513536465,
-    63.90613554629242
+    32.87206503062215,
+    42.00449125738019,
+    61.698595280765176
   ],
   "flap_horizontal_offsets": [
-    29.540070714602077,
-    55.32375420710643,
-    99.50073096296768
+    29.491138695433754,
+    54.10213591434579,
+    105.7687587052077
   ],
-  "endplate_height": 238.8570067579504,
-  "endplate_max_width": 124.92200103125977,
-  "endplate_min_width": 32.16327790369894,
+  "endplate_height": 268.9881271806169,
+  "endplate_max_width": 100.0,
+  "endplate_min_width": 47.58740222598861,
   "endplate_thickness_base": 10,
   "endplate_forward_lean": 6,
   "endplate_rearward_sweep": 10,
@@ -70,9 +70,9 @@
     35
   ],
   "y250_width": 500,
-  "y250_step_height": 21.746442059503984,
-  "y250_transition_length": 86.9019208874379,
-  "central_slot_width": 30.797237922946643,
+  "y250_step_height": 21.266846651941208,
+  "y250_transition_length": 80.0,
+  "central_slot_width": 30.0,
   "pylon_count": 2,
   "pylon_spacing": 320,
   "pylon_major_axis": 38,
