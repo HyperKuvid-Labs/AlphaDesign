@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_date": "2025-10-11T05:52:22.824710",
+    "generated_date": "2025-10-26T05:58:08.034634",
     "generator_version": "UltraRealisticF1FrontWingGenerator v2.0",
     "description": "CFD analysis parameters for multi-element F1 front wing",
     "units": {
@@ -64,7 +64,7 @@
       }
     ],
     "total_elements": 4,
-    "total_reference_area_m2": 1.312
+    "total_reference_area_m2": 1.3119999999999998
   },
   "airfoil_properties": {
     "main_element": {
@@ -193,7 +193,7 @@
   },
   "cfd_recommended_settings": {
     "reference_length_m": 0.28,
-    "reference_area_m2": 1.312,
+    "reference_area_m2": 1.3119999999999998,
     "reference_point_mm": [
       0,
       0,
