@@ -1,0 +1,8 @@
+
+=== Lock-Free Queue Server Benchmark ===
+
+Hardware Concurrency: 24 threads
+
+--- Single Thread Performance ---
+Small Queue (1K) - 1M ops           | Ops/sec: 1588394554      | Latency: 0.63       ns | Duration: 0.001s
+Medium Queue (64K) - 1M ops         | Ops/sec: 2239872417      | Latency: 0.45       ns | Duration: 0.001s
