@@ -95,6 +95,8 @@ The result isn’t magic; it’s engineering guardrails.
 - Topology is a living thing. Measure, solve, rewire, repeat.
 - Determinism beats heroics. Hash, verify, sync. Then go.
 
+![pccl_mental_model](./pccl.png)
+
 ## Quick checklist if you’re integrating
 
 - Wire up the communicator per trainer process; connect to master early
