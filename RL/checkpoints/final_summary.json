@@ -1,5 +1,5 @@
 {
-  "total_generations": 2,
+  "total_generations": 0,
   "total_designs_generated": 3,
   "output_directories": {
     "checkpoints": "checkpoints",
@@ -9,10 +9,10 @@
     "stl_outputs": "stl_outputs"
   },
   "best_designs_stl": [
-    "generation_000_best_design.stl",
     "generation_001_best_design.stl",
+    "generation_000_best_design.stl",
     "generation_002_best_design.stl"
   ],
-  "final_population_size": 3,
+  "final_population_size": 5,
   "early_stopped": false
 }
