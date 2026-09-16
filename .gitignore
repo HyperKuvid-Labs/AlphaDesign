@@ -24,3 +24,5 @@ neural_networks/
 stl_outputs/
 f1_wing_output/
 generation_data/
+paper/figures/phase_one_results.html
+paper/figures/phase_two_results.html

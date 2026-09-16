@@ -20,9 +20,11 @@ reproducible.
 > search to 5.429 for GA-only (+9.2%), while the feasible-design rate increased
 > from 42% to 63%. The gain came with lower predicted downforce, so this supports
 > an efficiency claim rather than a higher-downforce claim. These runs used the
-> empirical surrogate, contain `git_dirty: true`, and are not final paper
-> evidence. Raw metadata, JSONL records, and summaries are stored under
+> empirical surrogate and are a pilot rather than the final paper protocol
+> (§4). Raw metadata, JSONL records, and summaries are stored under
 > [`artifacts/phase_one/`](artifacts/phase_one/).
+>
+> ![Phase-one pilot: GA-only vs. random search](paper/figures/phase_one_results.png)
 
 ## 2. Build the executable benchmark
 
@@ -53,15 +55,51 @@ seed. This pilot uses the empirical surrogate and must not invoke OpenFOAM.
 
 ## 4. Freeze and run the full protocol
 
-- [ ] Select 10 to 20 matched seeds based on pilot variance.
-- [ ] Select a fixed budget, initially considering 500 to 1,000 evaluations per
+- [x] Select 10 to 20 matched seeds based on pilot variance.
+- [x] Select a fixed budget, initially considering 500 to 1,000 evaluations per
       strategy and seed.
-- [ ] Freeze the configuration before inspecting the final outcomes.
-- [ ] Report best feasible objective at the final budget as the primary metric.
-- [ ] Also report anytime performance, feasible-design rate, evaluations to a
+- [x] Freeze the configuration before inspecting the final outcomes.
+- [x] Report best feasible objective at the final budget as the primary metric.
+- [x] Also report anytime performance, feasible-design rate, evaluations to a
       fixed threshold, invalid-design rate, failure rate, and wall-clock time.
-- [ ] Compare paired seed-level results using confidence intervals and an effect
+- [x] Compare paired seed-level results using confidence intervals and an effect
       size. Do not treat evaluations within one run as independent samples.
+
+> **Full-protocol run:** 20 matched seeds, 1,000 evaluations per strategy per
+> seed, empirical surrogate only.
+>
+> Best feasible objective at the final budget: mean best efficiency was 5.19
+> for random search versus 6.31 for GA-only. Feasible-design rate was 41.0%
+> for random search versus 83.7% for GA-only; the rest were infeasible
+> designs, not evaluator failures (0 execution failures across all 40,000
+> evaluations for either strategy).
+>
+> Anytime performance (mean best-so-far across the 20 seeds, at evaluations
+> 50 / 100 / 250 / 500 / 750 / 1,000): random search reached 4.72 / 4.86 /
+> 5.01 / 5.07 / 5.14 / 5.19; GA-only reached 5.00 / 5.61 / 6.14 / 6.29 / 6.30 /
+> 6.31. GA-only's average result after only 100 evaluations already exceeds
+> random search's average result at the full 1,000-evaluation budget.
+>
+> Evaluations to reach a fixed threshold (5.19, random search's own final
+> mean): GA-only reached it in all 20 seeds, after a mean of 56 evaluations
+> (median 59). Random search reached it in only 6 of 20 seeds within the full
+> 1,000-evaluation budget, taking a mean of 689 evaluations (median 722) when
+> it did.
+>
+> Wall-clock time: the surrogate evaluator itself is cheap for both
+> strategies, about 0.20 seconds of evaluator time per 1,000-evaluation run
+> (about 0.20 ms per evaluation) for random search and GA-only alike.
+>
+> Paired seed-level comparison (20 matched seeds, best objective at the final
+> budget): GA-only beat random search on 20 of 20 seeds. Mean paired gap
+> +1.118 (sd 0.121), 95% CI [1.06, 1.17] (bootstrap and paired t-test agree),
+> Cohen's dz = 9.22, paired t(19) = 41.2 (p < 0.0001), Wilcoxon signed-rank
+> W = 0 (p < 0.0001).
+>
+> Raw metadata, JSONL records, and summaries are stored under
+> [`artifacts/phase_two/`](artifacts/phase_two/).
+>
+> ![Full-protocol run: GA-only vs. random search](paper/figures/phase_two_results.png)
 
 ## 5. Validate physical credibility
 
