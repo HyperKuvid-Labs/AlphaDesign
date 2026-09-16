@@ -16,6 +16,7 @@ dist/
 artifacts/legacy/
 artifacts/phase_one/
 artifacts/phase_two/
+artifacts/openfoam_candidates/
 logs/
 checkpoints/
 cfd_results/

@@ -2,8 +2,10 @@
 
 The immediate goal is to establish whether the constraint-aware genetic
 algorithm finds better feasible designs than random search under the same
-surrogate-evaluation budget. OpenFOAM validation comes after this comparison is
-reproducible.
+surrogate-evaluation budget. OpenFOAM validation was attempted after this
+comparison became reproducible, then dropped (see section 5); every claim in
+this document is scoped to the empirical surrogate only, with no external
+physical validation.
 
 ## 1. Freeze the paper claim
 
@@ -101,29 +103,53 @@ seed. This pilot uses the empirical surrogate and must not invoke OpenFOAM.
 >
 > ![Full-protocol run: GA-only vs. random search](paper/figures/phase_two_results.png)
 
-## 5. Validate physical credibility
+## 5. Validate physical credibility (dropped)
 
 Do not run OpenFOAM during every optimization evaluation. Select approximately
 12 to 20 representative cases after the surrogate experiments:
 
-- [ ] Baseline geometry.
-- [ ] Best designs from both strategies.
-- [ ] Median-performing and poor-but-feasible designs.
-- [ ] Geometrically diverse designs.
-- [ ] Designs near constraint boundaries.
+- [x] Baseline geometry.
+- [x] Best designs from both strategies.
+- [x] Median-performing and poor-but-feasible designs.
+- [x] Geometrically diverse designs.
+- [x] Designs near constraint boundaries.
 
 Run these cases on remote CPU infrastructure rather than the laptop.
 
-- [ ] Record the OpenFOAM version, solver, turbulence model, domain, boundary
+> **Outcome: attempted, then dropped.** `src/experiments/openfoam/` selects 15
+> representative designs from the phase-two run (covering every category
+> above) and generates a full `simpleFoam`/`kOmegaSST` case per design at the
+> surrogate's own operating point (200 km/h, 75 mm ground clearance).
+> Selection and case generation are implemented and tested locally
+> (`tests/test_openfoam_pipeline.py`) and remain available if this is revisited.
+>
+> A single coarse-mesh pilot case was run on a rented CPU sandbox
+> (`opencfd/openfoam-default:2412`) to get a real timing estimate before
+> committing to all 15 cases. `blockMesh` and `decomposePar` completed
+> normally, but `snappyHexMesh`'s parallel mesh-balancing step stalled for
+> over 35 minutes on a single coarse case, with OpenMPI logging
+> `cma-different-user-namespace-warning`, indicating its shared-memory
+> transport is degraded by the container sandbox's namespace isolation. That
+> makes per-case runtime impractical to budget for 15 cases (and worse for
+> the medium/fine mesh-convergence cases), so this path was dropped rather
+> than sunk further into infrastructure debugging.
+>
+> Per section 5's own fallback: since no OpenFOAM validation was completed,
+> the paper claim is limited to optimization under the empirical surrogate.
+> No downforce/drag/efficiency numbers in this document are physically
+> validated.
+
+- [ ] ~~Record the OpenFOAM version, solver, turbulence model, domain, boundary
       conditions, mesh quality, residuals, force convergence, runtime, and
-      hardware.
-- [ ] Run coarse, medium, and fine mesh checks for at least three representative
-      cases.
-- [ ] Keep calibration and held-out validation cases separate.
-- [ ] Compare the surrogate and OpenFOAM using rank correlation, force error,
-      systematic bias, and agreement among the top-ranked designs.
-- [ ] If agreement is weak, limit the paper claim to optimization under the
-      empirical surrogate.
+      hardware.~~ Not attempted.
+- [ ] ~~Run coarse, medium, and fine mesh checks for at least three representative
+      cases.~~ Not attempted.
+- [ ] ~~Keep calibration and held-out validation cases separate.~~ Not attempted.
+- [ ] ~~Compare the surrogate and OpenFOAM using rank correlation, force error,
+      systematic bias, and agreement among the top-ranked designs.~~ Not attempted.
+- [x] If agreement is weak, limit the paper claim to optimization under the
+      empirical surrogate. (No comparison was completed at all, so this
+      applies by default: see the outcome note above.)
 
 ## 6. Generate paper artifacts reproducibly
 
@@ -139,6 +165,8 @@ Run these cases on remote CPU infrastructure rather than the laptop.
 
 ## Completion gate
 
-The Results section is ready to write only when the full runs are reproducible,
-the statistical comparisons operate on independent seeds, and every physical
-claim is bounded by the available external validation.
+The Results section is ready to write once the full runs are reproducible and
+the statistical comparisons operate on independent seeds. Physical validation
+(section 5) was attempted and dropped, so the Results section must state its
+claims as surrogate-only and must not make any physically validated
+downforce, drag, or efficiency claims.
