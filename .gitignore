@@ -15,6 +15,7 @@ dist/
 # Preserved generated provenance and local experiment outputs
 artifacts/legacy/
 artifacts/phase_one/
+artifacts/phase_two/
 logs/
 checkpoints/
 cfd_results/
