@@ -1,61 +1,52 @@
 # AlphaDesign
 
-**Hybrid AI-Driven Aerodynamic Optimization for Formula 1 Front Wings**
+AlphaDesign is a research prototype for constrained genetic optimization of
+Formula 1 front-wing geometries. Its aerodynamic evaluator is an empirical,
+physics-informed surrogate with SI-unit normalization. It is not a validated
+Navier–Stokes CFD solver, and the repository makes no reinforcement-learning
+performance claim.
 
-## Project Overview
+## Repository layout
 
-AlphaDesign is a cutting-edge research project that combines reinforcement learning and genetic algorithms to optimize Formula 1 front wing aerodynamic designs. The system leverages the exploration capabilities of evolutionary algorithms with the learning efficiency of neural networks to discover superior aerodynamic configurations while maintaining structural integrity and F1 regulatory compliance.
+- `src/alphadesign/`: installable Python package and the supported optimizer
+- `tests/`: package and safety regression tests
+- `configs/`: runtime and test configuration JSON
+- `docs/`: architecture, integration notes, flowcharts, roadmap, and regulation references
+- `data/`: source coordinates and reference input data
+- `examples/legacy/`: one-off scripts retained for provenance
+- `artifacts/legacy/`: generated meshes, logs, checkpoints, and model weights
+- `paper/legacy/`: historical paper files and figures
 
-## What We're Doing
+Legacy artifacts are not paper evidence. Regenerate results with a recorded
+configuration, seed, evaluation budget, and independent validation before
+using them in a paper.
 
-### Core Innovation
-We've developed a **hybrid optimization framework** that addresses the limitations of traditional design methods in high-dimensional, multi-constraint spaces. The system integrates:
+## Setup
 
-- **Neural Network Architecture**: Actor-critic model with separate policy and value heads sharing a common feature trunk
-- **Genetic Algorithm Engine**: Population-based optimization with F1-specific mutation strategies  
-- **CFD Integration**: Comprehensive computational fluid dynamics analysis with multi-element wing support
-- **Constraint Validation**: Advanced structural analysis including safety factors, buckling resistance, and manufacturing feasibility
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
+```
 
-### Technical Implementation
-The neural network processes over 50 F1-specific parameters including wing geometry, flap configurations, endplate designs, and structural constraints. The policy head generates intelligent design modifications while the value head evaluates design quality, implementing an advanced reinforcement learning approach similar to modern actor-critic algorithms.
+The package can also be used directly from a checkout with `PYTHONPATH=src`.
 
-## Current Capabilities
+```bash
+python -m alphadesign --help
+alphadesign --dry-run --config configs/config.json
+pytest
+```
 
-✅ **Complete Neural Network Pipeline**: Policy/value heads with shared feature extraction  
-✅ **F1-Specific Genetic Operations**: Adaptive mutation strategies tailored for aerodynamic optimization  
-✅ **CFD Analysis System**: Multi-element wing evaluation with performance metrics  
-✅ **Constraint Validation**: Structural integrity and F1 regulation compliance checking  
-✅ **STL Generation**: Automatic 3D model creation for physical validation  
-✅ **Early Stopping**: Intelligent convergence detection to prevent over-optimization  
+The experiment recorder currently writes reproducibility metadata only. It
+does not execute random-search, GA-only, or neural-guided-GA comparisons and
+does not fabricate their results. Any neural guidance is disabled by default
+because the current pipeline does not collect action/reward trajectories.
 
-## What Must Be Done
+## Validation limits
 
-### High Priority Development
-- **Main Pipeline Integration**: Complete the connection between individual modules into a unified optimization loop
-- **CFD Solver Enhancement**: Integrate more sophisticated fluid dynamics solvers for accurate performance prediction  
-- **Neural Network Training**: Implement the complete training loop with proper loss calculation and backpropagation
-- **Hyperparameter Optimization**: Fine-tune genetic algorithm parameters and neural network architecture
+Tests cover package imports, geometry units and sanity checks, failed-evaluation
+handling, fitness conventions, policy-gating behavior, and experiment
+metadata. They do not establish high-fidelity CFD agreement, physical wind
+tunnel validity, or paper-level benchmark results.
 
-### Technical Improvements Needed
-- **Memory Management**: Optimize for large-scale population handling and CFD computational requirements
-- **Parallel Processing**: Implement GPU acceleration for neural network training and parallel CFD evaluation
-- **Robustness Testing**: Extensive validation across different F1 regulation scenarios and design constraints
-- **Performance Benchmarking**: Compare against traditional optimization methods and establish performance baselines
-
-### Advanced Features for Future Implementation
-- **Multi-Objective Optimization**: Extend beyond single fitness metrics to handle trade-offs between downforce, drag, and manufacturability
-- **Real-Time Adaptation**: Dynamic parameter adjustment based on changing F1 regulations or track-specific requirements  
-- **Transfer Learning**: Pre-trained models that can adapt quickly to new aerodynamic challenges
-- **Integration with CAD Systems**: Direct export to professional design software for manufacturing pipeline
-
-## Research Goals
-
-This project aims to demonstrate that hybrid AI approaches can significantly outperform traditional aerodynamic optimization methods by:
-- Reducing design iteration time from weeks to hours
-- Discovering non-intuitive design configurations that human engineers might miss  
-- Maintaining regulatory compliance while maximizing performance
-- Providing explainable AI insights into aerodynamic design principles
-
-***
-
-*This is an active research project combining advanced machine learning with aerodynamic engineering. The framework represents a new paradigm in computational design optimization.*
+See [the architecture notes](docs/architecture.md), [the integration guide](docs/integration/CFD_JSON_INTEGRATION.md), and [the roadmap](docs/roadmap.md) for current scope and open work.

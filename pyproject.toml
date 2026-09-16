@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alphadesign"
+version = "0.1.0"
+description = "Constrained F1 front-wing optimization with an empirical aerodynamic surrogate"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "trimesh",
+    "numpy-stl",
+    "torch",
+    "tqdm",
+    "psutil",
+]
+
+[project.scripts]
+alphadesign = "alphadesign.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"

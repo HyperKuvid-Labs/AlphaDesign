@@ -1,0 +1,24 @@
+# Python caches and local tooling
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+build/
+dist/
+.vscode/
+.agents/
+.codex/
+
+# Preserved generated provenance and local experiment outputs
+artifacts/legacy/
+logs/
+checkpoints/
+cfd_results/
+cfd_temp_files/
+neural_networks/
+stl_outputs/
+f1_wing_output/
+generation_data/
