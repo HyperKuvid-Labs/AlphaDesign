@@ -11,6 +11,16 @@ Usage:
     PYOPENGL_PLATFORM=egl python3 src/experiments/render_wing_showcase.py \\
         --stl path/to/design.stl --out paper/figures/my_render.png [accent|carbon]
 
+Hero renders of the GA best design (paper/figures/best_design_render_*.png)
+use --filter-small-components, which renders only the 4 wing elements and
+2 endplates and omits the ~320 tiny unstitched strake/VG/fence/pylon
+patches that z-fight into visible clutter at the footplate:
+
+    PYOPENGL_PLATFORM=egl python3 src/experiments/render_wing_showcase.py carbon \
+        --stl f1_wing_output/best_design_phase_two_ga_only.stl \
+        --filter-small-components --width 2560 --height 1440 \
+        --out paper/figures/best_design_render_carbon.png
+
 Output:
     paper/figures/wing_showcase.png (default) or --out path
 """
@@ -51,6 +61,32 @@ def generate_or_load_mesh(stl_path=None):
     return tm
 
 
+def filter_small_components(tm, min_extent_m):
+    """Keep only connected components whose largest bounding-box extent is
+    >= ``min_extent_m``. Used for hero renders only: the generator emits the
+    ~20 ancillary features (strakes, vortex generators, fences, pylons,
+    cascades) as hundreds of unstitched thin patches that z-fight at most
+    camera angles. The 4 wing elements and the 2 endplates are by far the
+    largest components, so an extent threshold isolates them cleanly."""
+    # Two criteria: largest extent >= min_extent_m AND second-largest extent
+    # >= min_extent_m / 3. The second test rejects ribbon-like parts (the
+    # 640 x 74 x 12 mm serrated footplate strips are *longer* than the
+    # 411 x 252 mm endplates, so a single length threshold cannot separate
+    # them, but their width cannot pass a plate-like test).
+    comps = tm.split(only_watertight=False)
+    keep = []
+    for c in comps:
+        ext = np.sort(c.extents)
+        if ext[-1] >= min_extent_m and ext[-2] >= min_extent_m / 3.0:
+            keep.append(c)
+    print(
+        f"component filter: kept {len(keep)}/{len(comps)} components "
+        f"(max extent >= {min_extent_m * 1000:.0f} mm, 2nd extent >= {min_extent_m * 1000 / 3:.0f} mm); "
+        f"kept extents (mm): {sorted(tuple(np.round(np.sort(c.extents)[::-1] * 1000).astype(int)) for c in keep)}"
+    )
+    return trimesh.util.concatenate(keep)
+
+
 def look_at(eye, target, up=(0.0, 0.0, 1.0)):
     """Camera pose matrix looking from eye to target."""
     eye = np.asarray(eye, float)
@@ -76,9 +112,22 @@ def main():
     parser.add_argument("--out", default=None, help="output PNG path")
     parser.add_argument("--width", type=int, default=1920)
     parser.add_argument("--height", type=int, default=1080)
+    parser.add_argument(
+        "--filter-small-components", nargs="?", const=300.0, default=None, type=float,
+        metavar="MIN_EXTENT_MM",
+        help="render only connected components whose largest bbox extent is >= this "
+             "(mm; default 300 when given without a value). Drops the tiny unstitched "
+             "strake/VG/fence/pylon patches that z-fight; keeps elements + endplates.",
+    )
+    parser.add_argument(
+        "--view", type=float, nargs=3, default=(-1.0, 0.72, 0.52), metavar=("X", "Y", "Z"),
+        help="camera direction from the bbox center (unnormalised); default front-quarter",
+    )
     args = parser.parse_args()
 
     tm = generate_or_load_mesh(args.stl)
+    if args.filter_small_components is not None:
+        tm = filter_small_components(tm, args.filter_small_components / 1000.0)
     bounds = tm.bounds  # meters
     center = tm.centroid
     span_y = bounds[1][1] - bounds[0][1]  # dominant dimension (~1.9-2.5 m)
@@ -117,7 +166,7 @@ def main():
     dist_h = half_h / np.tan(fov_y / 2)
     dist = max(dist_w, dist_h) + 0.25
 
-    view_dir = np.array([-1.0, 0.72, 0.52])  # front-quarter view from above
+    view_dir = np.array(args.view, dtype=float)  # default: front-quarter view from above
     view_dir /= np.linalg.norm(view_dir)
     target = (bounds[0] + bounds[1]) / 2  # frame on bbox center, not centroid
     eye = target + view_dir * dist
