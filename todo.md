@@ -17,17 +17,17 @@ coefficients beyond those constants are project-specific fits. The paper
 should describe the surrogate as a physics-informed heuristic, not a
 physics-based or validated model.
 
-**2026-09-17: the ground-effect formula has been fixed.** It previously
-contradicted published low-ride-height measurements and contained internal
-discontinuities; it is now fit by least squares to real data from J.
-Zerihan's PhD thesis (Univ. of Southampton, 2001). See
-[`docs/validation/README.md#fix-ground-effect-formula`](docs/validation/README.md#fix-ground-effect-formula).
-This means every result below (the phase-one pilot and the full-protocol run)
-was generated **under the old, unfixed formula**, since both predate this
-change. They remain a valid comparison of the two search strategies against
-each other, because both used the same surrogate, but do not reflect the
-current code, and would need to be regenerated if the paper wants results
-under the corrected surrogate.
+**2026-09-17: the ground-effect formula has been fixed and the results below
+regenerated under it.** It previously contradicted published low-ride-height
+measurements and contained internal discontinuities; it is now fit by least
+squares to real data from J. Zerihan's PhD thesis (Univ. of Southampton,
+2001). See
+[`docs/validation/README.md#fix-ground-effect-formula`](docs/validation/README.md#fix-ground-effect-formula)
+for the fit, and note the correction logged there: the first attempt at this
+fix targeted `cfd_analysis.py`, which turned out to have no effect on any
+result below, since `random_search.py`/`ga_only.py` exclusively go through
+`formula_constraints.py`'s separate, independent ground-effect
+implementation. Both are now fixed; the results below are current.
 
 ## 1. Freeze the paper claim
 
@@ -40,12 +40,13 @@ under the corrected surrogate.
 
 > **Phase-one pilot result:** Across three matched seeds and 100 surrogate
 > evaluations per strategy, GA-only achieved a higher best predicted efficiency
-> in all three seeds. Mean best efficiency increased from 4.971 for random
-> search to 5.429 for GA-only (+9.2%), while the feasible-design rate increased
-> from 42% to 63%. The gain came with lower predicted downforce, so this supports
-> an efficiency claim rather than a higher-downforce claim. These runs used the
-> empirical surrogate and are a pilot rather than the final paper protocol
-> (§4). Raw metadata, JSONL records, and summaries are stored under
+> in all three seeds. Mean best efficiency increased from 3.764 for random
+> search to 4.489 for GA-only (+19.3%), while the feasible-design rate increased
+> from 40% to 60%. The gain came with lower predicted downforce (mean 2855N for
+> random search's best-efficiency design versus 2545N for GA-only's), so this
+> supports an efficiency claim rather than a higher-downforce claim. These runs
+> used the empirical surrogate and are a pilot rather than the final paper
+> protocol (§4). Raw metadata, JSONL records, and summaries are stored under
 > [`artifacts/phase_one/`](artifacts/phase_one/).
 >
 > ![Phase-one pilot: GA-only vs. random search](paper/figures/phase_one_results.png)
@@ -92,32 +93,32 @@ seed. This pilot uses the empirical surrogate and must not invoke OpenFOAM.
 > **Full-protocol run:** 20 matched seeds, 1,000 evaluations per strategy per
 > seed, empirical surrogate only.
 >
-> Best feasible objective at the final budget: mean best efficiency was 5.19
-> for random search versus 6.31 for GA-only. Feasible-design rate was 41.0%
-> for random search versus 83.7% for GA-only; the rest were infeasible
+> Best feasible objective at the final budget: mean best efficiency was 3.85
+> for random search versus 4.78 for GA-only. Feasible-design rate was 37.1%
+> for random search versus 86.7% for GA-only; the rest were infeasible
 > designs, not evaluator failures (0 execution failures across all 40,000
 > evaluations for either strategy).
 >
 > Anytime performance (mean best-so-far across the 20 seeds, at evaluations
-> 50 / 100 / 250 / 500 / 750 / 1,000): random search reached 4.72 / 4.86 /
-> 5.01 / 5.07 / 5.14 / 5.19; GA-only reached 5.00 / 5.61 / 6.14 / 6.29 / 6.30 /
-> 6.31. GA-only's average result after only 100 evaluations already exceeds
+> 50 / 100 / 250 / 500 / 750 / 1,000): random search reached 3.56 / 3.67 /
+> 3.74 / 3.78 / 3.81 / 3.85; GA-only reached 3.71 / 4.26 / 4.71 / 4.77 / 4.78 /
+> 4.78. GA-only's average result after only 100 evaluations already exceeds
 > random search's average result at the full 1,000-evaluation budget.
 >
-> Evaluations to reach a fixed threshold (5.19, random search's own final
-> mean): GA-only reached it in all 20 seeds, after a mean of 56 evaluations
-> (median 59). Random search reached it in only 6 of 20 seeds within the full
-> 1,000-evaluation budget, taking a mean of 689 evaluations (median 722) when
+> Evaluations to reach a fixed threshold (3.85, random search's own final
+> mean): GA-only reached it in all 20 seeds, after a mean of 65 evaluations
+> (median 67). Random search reached it in only 8 of 20 seeds within the full
+> 1,000-evaluation budget, taking a mean of 587 evaluations (median 625) when
 > it did.
 >
 > Wall-clock time: the surrogate evaluator itself is cheap for both
-> strategies, about 0.20 seconds of evaluator time per 1,000-evaluation run
-> (about 0.20 ms per evaluation) for random search and GA-only alike.
+> strategies, about 0.17-0.18 seconds of evaluator time per 1,000-evaluation
+> run (about 0.17-0.18 ms per evaluation) for random search and GA-only alike.
 >
 > Paired seed-level comparison (20 matched seeds, best objective at the final
 > budget): GA-only beat random search on 20 of 20 seeds. Mean paired gap
-> +1.118 (sd 0.121), 95% CI [1.06, 1.17] (bootstrap and paired t-test agree),
-> Cohen's dz = 9.22, paired t(19) = 41.2 (p < 0.0001), Wilcoxon signed-rank
+> +0.929 (sd 0.096), 95% CI [0.886, 0.967] (bootstrap and paired t-test agree),
+> Cohen's dz = 9.66, paired t(19) = 43.2 (p < 0.0001), Wilcoxon signed-rank
 > W = 0 (p < 0.0001).
 >
 > Raw metadata, JSONL records, and summaries are stored under
