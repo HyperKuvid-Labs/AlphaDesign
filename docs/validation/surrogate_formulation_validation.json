@@ -1,0 +1,357 @@
+[
+  {
+    "id": 1,
+    "name": "Lift-curve slope with compressibility and thickness correction",
+    "formula_latex_or_text": "cl_alpha = (2*pi/beta)*(1 + 0.77*thickness), beta = sqrt(1 - mach^2)",
+    "assessment": "TEXTBOOK_GENERAL_FORM_TUNED_COEFFICIENTS",
+    "citations": [
+      {
+        "title": "Thin Airfoil Theory (Stanford AA200b lecture notes)",
+        "author_or_org": "I. Kroo, Stanford University",
+        "year": 2000,
+        "url_or_reference": "http://aero-comlab.stanford.edu/aa200b/lect_notes/thinairfoil.pdf"
+      },
+      {
+        "title": "Prandtl\u2013Glauert transformation",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Prandtl%E2%80%93Glauert_transformation"
+      },
+      {
+        "title": "Fundamentals of Aerodynamics, 6th ed.",
+        "author_or_org": "J. D. Anderson",
+        "year": 2016,
+        "url_or_reference": "McGraw-Hill, Ch. 4 (thin airfoil theory); record verified via Open Library"
+      },
+      {
+        "title": "Aviation Stack Exchange answer a/111340 (Cl_alpha = 2pi/sqrt(1-M^2))",
+        "author_or_org": "aviation.stackexchange.com contributor",
+        "year": 2020,
+        "url_or_reference": "https://aviation.stackexchange.com/a/111340"
+      },
+      {
+        "title": "Aviation Stack Exchange answer a/14559 (2D slope 2pi; slope increases slightly with thickness)",
+        "author_or_org": "aviation.stackexchange.com contributor",
+        "year": 2015,
+        "url_or_reference": "https://aviation.stackexchange.com/a/14559"
+      }
+    ],
+    "summary": "The 2*pi/beta core is textbook thin-airfoil theory with the Prandtl-Glauert compressibility correction. The thickness factor (1 + 0.77*t/c) has the right sign of the inviscid thickness effect but the 0.77 constant could not be traced to any published source, and the code ignores the viscous slope reduction, so it overpredicts real section slopes by ~15-20% at F1 conditions."
+  },
+  {
+    "id": 2,
+    "name": "Zero-lift angle of attack from camber",
+    "formula_latex_or_text": "alpha_0 = -2*camber*(1 + 0.5*thickness)  [radians; camber/thickness as fractions]",
+    "assessment": "TEXTBOOK_GENERAL_FORM_TUNED_COEFFICIENTS",
+    "citations": [
+      {
+        "title": "Basic Wing and Airfoil Theory, Ch. 7 sec. 2 'The Parabolic-camber Airfoil'",
+        "author_or_org": "A. Pope",
+        "year": 1951,
+        "url_or_reference": "McGraw-Hill; section verified via Open Library full-text search"
+      },
+      {
+        "title": "Fundamentals of Aerodynamics, 6th ed., cambered thin-airfoil theory",
+        "author_or_org": "J. D. Anderson",
+        "year": 2016,
+        "url_or_reference": "McGraw-Hill, Ch. 4; coverage verified via Open Library full-text search"
+      },
+      {
+        "title": "Thin Airfoil Theory (Stanford AA200b lecture notes; parabolic mean line z=4hx(1-x) as example)",
+        "author_or_org": "I. Kroo, Stanford University",
+        "year": 2000,
+        "url_or_reference": "http://aero-comlab.stanford.edu/aa200b/lect_notes/thinairfoil.pdf"
+      }
+    ],
+    "summary": "alpha_L0 = -2*max_camber (radians) is the exact thin-airfoil-theory result for a parabolic camber line (re-derived independently in this review). The (1 + 0.5*thickness) multiplier is not part of thin-airfoil theory and appears to be project tuning. Magnitudes are plausible (2% camber, 12% thick gives -2.4 deg)."
+  },
+  {
+    "id": 3,
+    "name": "Zero-lift (profile) drag buildup",
+    "formula_latex_or_text": "cd_0 = 0.006 + 0.02*camber + 0.05*thickness^2",
+    "assessment": "PLAUSIBLE_ENGINEERING_APPROXIMATION",
+    "citations": [
+      {
+        "title": "Summary of Airfoil Data, NACA Report 824",
+        "author_or_org": "I. H. Abbott, A. E. von Doenhoff, L. S. Stivers",
+        "year": 1945,
+        "url_or_reference": "NACA R-824; existence verified via Open Library full-text search"
+      },
+      {
+        "title": "Theory of Wing Sections",
+        "author_or_org": "I. H. Abbott, A. E. von Doenhoff",
+        "year": 1959,
+        "url_or_reference": "Dover; record verified via Open Library"
+      },
+      {
+        "title": "Parasitic drag / Zero-lift drag coefficient",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Parasitic_drag"
+      }
+    ],
+    "summary": "No published equation of this form was found; it is a project fit. The baseline 0.006 matches the typical minimum profile drag of smooth airfoil sections at Re of several million (NACA R-824 data), and the trends (drag grows with camber and thickness) are physically correct, but the specific linear/quadratic penalties are heuristic and misrepresent drag-bucket behaviour."
+  },
+  {
+    "id": 4,
+    "name": "Reynolds-number drag correction",
+    "formula_latex_or_text": "re_factor = (Re/1e6)^(-0.15) for Re > 1e6; else re_factor = 1.2",
+    "assessment": "TEXTBOOK_GENERAL_FORM_TUNED_COEFFICIENTS",
+    "citations": [
+      {
+        "title": "Skin friction drag (Prandtl one-seventh-power law cf = 0.0576*Re_x^(-1/5))",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Skin_friction_drag"
+      },
+      {
+        "title": "Boundary-Layer Theory",
+        "author_or_org": "H. Schlichting, K. Gersten",
+        "year": 1955,
+        "url_or_reference": "Pergamon/McGraw-Hill; record verified via Open Library; cited for Prandtl-Schlichting cf = 0.455/(log10 Re)^2.58"
+      }
+    ],
+    "summary": "Power-law decay of friction drag with Reynolds number is textbook boundary-layer theory (turbulent flat plate: cf ~ Re^(-1/5)), so the form is grounded, but the -0.15 exponent is tuned and is applied to total profile drag rather than the friction component. The two branches are discontinuous at Re = 1e6 (factor jumps 1.2 -> 1.0, a ~17% step), right in the F1 front-wing Reynolds range."
+  },
+  {
+    "id": 5,
+    "name": "Induced drag with Oswald efficiency",
+    "formula_latex_or_text": "cd_induced = cl^2/(pi*AR*e), e = 0.7 - 0.05*element_index",
+    "assessment": "TEXTBOOK_EXACT",
+    "citations": [
+      {
+        "title": "Induced Drag Coefficient, Beginner's Guide to Aeronautics",
+        "author_or_org": "NASA Glenn Research Center",
+        "year": 2024,
+        "url_or_reference": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/induced-drag-coefficient/"
+      },
+      {
+        "title": "Fundamentals of Aerodynamics, 6th ed., Ch. 5 (Prandtl lifting-line theory)",
+        "author_or_org": "J. D. Anderson",
+        "year": 2016,
+        "url_or_reference": "McGraw-Hill; record verified via Open Library"
+      }
+    ],
+    "summary": "The equation is exactly Prandtl's lifting-line result, reproduced verbatim on NASA Glenn's induced-drag page. e = 0.7 is a plausible Oswald factor and degrading it for flap elements is reasonable in direction. Caveat: the per-element aspect ratio is computed with a dimensionally wrong sqrt(area/chord), which distorts the AR used here and looks like an implementation bug."
+  },
+  {
+    "id": 6,
+    "name": "Ground-effect factor, main element",
+    "formula_latex_or_text": "h/c<0.1: 2.2-1.2*(h/c); 0.1<=h/c<0.5: 1+1.2*exp(-3*h/c); h/c>=0.5: 1+0.2*exp(-h/c); capped at 2.5",
+    "assessment": "FIXED_DATA_GROUNDED",
+    "citations": [
+      {
+        "title": "Aerodynamics of a Single Element Wing in Ground Effect, Journal of Aircraft 37(6):1058-1064",
+        "author_or_org": "J. Zerihan, X. Zhang",
+        "year": 2000,
+        "url_or_reference": "https://doi.org/10.2514/2.2711"
+      },
+      {
+        "title": "Ground Effect Aerodynamics of Race Cars, Applied Mechanics Reviews 59(1):33-49",
+        "author_or_org": "X. Zhang, W. Toet, J. Zerihan",
+        "year": 2006,
+        "url_or_reference": "https://doi.org/10.1115/1.2110263"
+      }
+    ],
+    "summary": "Fixed: was discontinuous and rose monotonically to its maximum as h/c -> 0, contradicting measured downforce loss near the ground. Now a smooth curve fit directly to real Zerihan (2001) thesis data, peaking near the measured h/c and falling off on both sides.",
+    "original_assessment": "QUESTIONABLE",
+    "fix": {
+      "date": "2026-09-17",
+      "description": "Replaced with a log-normal-in-h/c curve fit by least squares to real single-element wing data.",
+      "source": "J. Zerihan, PhD thesis, University of Southampton (2001), Ch. 4-5; cross-checked against Zhang, Toet & Zerihan, Applied Mechanics Reviews 59(1), 2006.",
+      "fit_quality": "RMS residual 0.036 across 15 data points; peak at h/c=0.085 (measured 0.082), multiplier 2.48 (measured 2.49).",
+      "data_file": "docs/validation/ground_effect_source_data.md",
+      "test_file": "tests/test_ground_effect_formula.py"
+    }
+  },
+  {
+    "id": 7,
+    "name": "Ground-effect factor, flap elements",
+    "formula_latex_or_text": "scaled by 0.8^element_index; h/c<0.15: (1.8-0.8*h/c)*red; 0.15<=h/c<0.8: (1+0.8*exp(-2*h/c))*red; else 1+0.1*exp(-h/c)*red",
+    "assessment": "FIXED_HEURISTIC",
+    "citations": [
+      {
+        "title": "Aerodynamics of a Double-Element Wing in Ground Effect, AIAA Journal 41(6):1007-1016",
+        "author_or_org": "X. Zhang, J. Zerihan",
+        "year": 2003,
+        "url_or_reference": "https://doi.org/10.2514/2.2057"
+      }
+    ],
+    "summary": "Fixed structurally: no longer discontinuous and never falls below 1.0 (no longer predicts ground proximity reduces flap downforce below freestream). The reduced amplitude for flap elements remains a heuristic, not a data fit, since no isolated flap-only ground-effect measurements were found.",
+    "original_assessment": "QUESTIONABLE",
+    "fix": {
+      "date": "2026-09-17",
+      "description": "Structural defects fixed (smooth, floor of 1.0), but amplitude remains a qualitative extrapolation since no isolated per-element flap ground-effect dataset was found in the literature reviewed.",
+      "source": "Same review as item 6; no flap-specific quantitative source located.",
+      "test_file": "tests/test_ground_effect_formula.py"
+    }
+  },
+  {
+    "id": 8,
+    "name": "Multi-element slot/gap effect",
+    "formula_latex_or_text": "gap_efficiency = exp(-((gap-0.02)/0.01)^2); circulation_boost = 1.3+0.15*gap_eff*overlap_eff; velocity_ratio = 1.4+0.4*gap_eff; cl_multiplier = circulation_boost*sqrt(velocity_ratio)",
+    "assessment": "PLAUSIBLE_ENGINEERING_APPROXIMATION",
+    "citations": [
+      {
+        "title": "High-Lift Aerodynamics (37th Wright Brothers Lecture), Journal of Aircraft 12(6):501-530",
+        "author_or_org": "A. M. O. Smith",
+        "year": 1975,
+        "url_or_reference": "https://doi.org/10.2514/3.59830"
+      },
+      {
+        "title": "Parametric Investigation of a High-Lift Airfoil at High Reynolds Numbers, Journal of Aircraft 34(4):485-491",
+        "author_or_org": "J. C. Lin, C. J. Dominik",
+        "year": 1997,
+        "url_or_reference": "https://doi.org/10.2514/2.2217"
+      },
+      {
+        "title": "Aerodynamics of a Double-Element Wing in Ground Effect, AIAA Journal 41(6):1007-1016",
+        "author_or_org": "X. Zhang, J. Zerihan",
+        "year": 2003,
+        "url_or_reference": "https://doi.org/10.2514/2.2057"
+      }
+    ],
+    "summary": "The existence of an optimal slot gap and the boundary-layer re-energising role of slot flow are established (Smith 1975), but the Gaussian efficiency curve, the 2%-chord optimum, and especially cl_multiplier = circulation_boost*sqrt(velocity_ratio) have no published counterpart; the sqrt of a velocity ratio multiplying a lift coefficient is dimensionally arbitrary. The multiplier varies only from ~1.54 to ~1.95, so the model barely responds to gap variation despite calling it 'physics-based'."
+  },
+  {
+    "id": 9,
+    "name": "Cantilever beam first natural frequency",
+    "formula_latex_or_text": "f = (1.875^2/(2*pi)) * sqrt(E*I/(mass_per_length*L^4))",
+    "assessment": "TEXTBOOK_EXACT",
+    "citations": [
+      {
+        "title": "Formulas for Natural Frequency and Mode Shape (Table 8-1, cantilever)",
+        "author_or_org": "R. D. Blevins",
+        "year": 1979,
+        "url_or_reference": "Van Nostrand Reinhold; record verified via Open Library; beta1*L = 1.8751 also verified numerically in this review"
+      },
+      {
+        "title": "Euler-Bernoulli beam theory (free vibration; beta_n := (mu*omega^2/EI)^(1/4); cantilever example)",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Euler%E2%80%93Bernoulli_beam_theory"
+      }
+    ],
+    "summary": "The formula is exactly the Euler-Bernoulli cantilever first-mode result (beta1*L = 1.8751, verified numerically). However the code passes the full span as L: a centreline-mounted wing is two cantilevers of span/2 (f scales as 1/L^2, so the estimate is 4x too low; a clamped-clamped model would be ~6.4x higher). The statics use simply-supported WL/8 while the dynamics use cantilever BCs, and laminate/tip-mass effects are ignored."
+  },
+  {
+    "id": 10,
+    "name": "Flat-plate critical buckling stress",
+    "formula_latex_or_text": "sigma_cr = (pi^2*E*t^2)/(12*(1-0.3^2)*b^2), t=wall thickness, b=section width",
+    "assessment": "TEXTBOOK_GENERAL_FORM_TUNED_COEFFICIENTS",
+    "citations": [
+      {
+        "title": "Buckling (plate-buckling derivation: sigma_cr = k_cr*pi^2*E/(12*(1-nu^2)*(b/t)^2), k_cr=(mb/a+a/mb)^2, min k=4)",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Buckling"
+      },
+      {
+        "title": "Theory of Elastic Stability, 2nd ed., Ch. 7 (buckling of thin plates)",
+        "author_or_org": "S. P. Timoshenko, J. M. Gere",
+        "year": 1961,
+        "url_or_reference": "McGraw-Hill; record verified via Open Library"
+      },
+      {
+        "title": "Mechanics of Composite Materials (orthotropic laminate analysis)",
+        "author_or_org": "R. M. Jones",
+        "year": 1975,
+        "url_or_reference": "Taylor & Francis; record verified via Open Library"
+      }
+    ],
+    "summary": "This is the classical plate-buckling stress with the buckling coefficient implicitly set to k=1, which matches only the wide-column limit (both long edges free). Supported skin panels have k=4, a free-edged cover has k~0.425, so k=1 is 4x off each bounding case. The panel width b is set to the full root chord (no intermediate support), and an isotropic E with nu=0.3 is used for a CFRP laminate where orthotropic D-matrix buckling analysis is standard."
+  },
+  {
+    "id": 11,
+    "name": "Static/fatigue safety factor vs von Mises stress",
+    "formula_latex_or_text": "SF_static = ultimate_strength/von_mises; SF_fatigue = fatigue_limit/von_mises; von_mises = sqrt(sigma_bending^2 + 3*tau^2)",
+    "assessment": "TEXTBOOK_EXACT",
+    "citations": [
+      {
+        "title": "Factor of safety",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Factor_of_safety"
+      },
+      {
+        "title": "von Mises yield criterion",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Von_Mises_yield_criterion"
+      },
+      {
+        "title": "Shigley's Mechanical Engineering Design",
+        "author_or_org": "J. E. Shigley et al.",
+        "year": 2007,
+        "url_or_reference": "McGraw-Hill; record verified via Open Library"
+      },
+      {
+        "title": "Tsai-Wu failure criterion (standard anisotropic composite criterion)",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Tsai%E2%80%93Wu_failure_criterion"
+      }
+    ],
+    "summary": "SF = allowable/applied stress is the standard definition, and sqrt(sigma^2 + 3*tau^2) is exactly the von Mises equivalent for combined bending+shear - correct usage for isotropic ductile metals. But the wing is explicitly CFRP: von Mises is not a valid failure theory for anisotropic composites (Tsai-Wu/Hashin/max-stress with directional allowables is standard), and the fatigue check omits mean-stress (Goodman) and spectrum effects, so it is a screening check only."
+  },
+  {
+    "id": 12,
+    "name": "Dynamic pressure",
+    "formula_latex_or_text": "q = 0.5*rho*V^2",
+    "assessment": "TEXTBOOK_EXACT",
+    "citations": [
+      {
+        "title": "Dynamic Pressure, Beginner's Guide to Aeronautics (Bernoulli derivation p_s + rho*u^2/2 = p_t)",
+        "author_or_org": "NASA Glenn Research Center",
+        "year": 2024,
+        "url_or_reference": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/dynamic-pressure/"
+      },
+      {
+        "title": "Lift Coefficient, Beginner's Guide to Aeronautics",
+        "author_or_org": "NASA Glenn Research Center",
+        "year": 2024,
+        "url_or_reference": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/lift-coefficient/"
+      }
+    ],
+    "summary": "Exact textbook definition of incompressible dynamic pressure, derived from Bernoulli's equation on the NASA Glenn page. Appropriate at F1 speeds (Mach <= ~0.3); no change needed."
+  },
+  {
+    "id": 13,
+    "name": "Aerodynamic efficiency metric (downforce/drag)",
+    "formula_latex_or_text": "efficiency = total_downforce / total_drag",
+    "assessment": "TEXTBOOK_EXACT",
+    "citations": [
+      {
+        "title": "Lift-to-drag ratio ('It describes the aerodynamic efficiency')",
+        "author_or_org": "Wikipedia",
+        "year": 2024,
+        "url_or_reference": "https://en.wikipedia.org/wiki/Lift-to-drag_ratio"
+      },
+      {
+        "title": "Ground Effect Aerodynamics of Race Cars, Applied Mechanics Reviews 59(1):33-49",
+        "author_or_org": "X. Zhang, W. Toet, J. Zerihan",
+        "year": 2006,
+        "url_or_reference": "https://doi.org/10.1115/1.2110263"
+      },
+      {
+        "title": "Race Car Aerodynamics: Designing for Speed",
+        "author_or_org": "J. Katz",
+        "year": 1995,
+        "url_or_reference": "Robert Bentley; record/content verified via Open Library full-text search"
+      },
+      {
+        "title": "Aerodynamic Effect of the Gurney Flap on the Front Wing of a F1 Car, Energies 14(8):2059",
+        "author_or_org": "M. Basso, C. Cravero, D. Marsano",
+        "year": 2021,
+        "url_or_reference": "https://doi.org/10.3390/en14082059"
+      },
+      {
+        "title": "Competition Car Downforce: A Practical Handbook",
+        "author_or_org": "S. McBeath",
+        "year": 1999,
+        "url_or_reference": "Haynes; downforce-to-drag-ratio content verified via Open Library full-text search"
+      }
+    ],
+    "summary": "Downforce/drag is the standard L/D-style aerodynamic-efficiency metric for ground-effect downforce devices in motorsport literature (identical to -CL/CD since q*S cancels). Report it explicitly as downforce-to-drag, and note that a front-wing-only ratio is a component-level metric, not the whole-car value."
+  }
+]

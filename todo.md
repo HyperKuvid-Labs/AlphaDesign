@@ -7,6 +7,28 @@ comparison became reproducible, then dropped (see section 5); every claim in
 this document is scoped to the empirical surrogate only, with no external
 physical validation.
 
+Since every result below depends entirely on the surrogate's formulas, they
+were independently checked against published aerodynamics and structural
+literature: see [`docs/validation/`](docs/validation/README.md). Summary: the
+surrogate's skeleton is real textbook theory (thin-airfoil theory,
+Prandtl-Glauert compressibility, Prandtl lifting-line induced drag,
+Euler-Bernoulli beam vibration, classical plate buckling), but most numeric
+coefficients beyond those constants are project-specific fits. The paper
+should describe the surrogate as a physics-informed heuristic, not a
+physics-based or validated model.
+
+**2026-09-17: the ground-effect formula has been fixed.** It previously
+contradicted published low-ride-height measurements and contained internal
+discontinuities; it is now fit by least squares to real data from J.
+Zerihan's PhD thesis (Univ. of Southampton, 2001). See
+[`docs/validation/README.md#fix-ground-effect-formula`](docs/validation/README.md#fix-ground-effect-formula).
+This means every result below (the phase-one pilot and the full-protocol run)
+was generated **under the old, unfixed formula**, since both predate this
+change. They remain a valid comparison of the two search strategies against
+each other, because both used the same surrogate, but do not reflect the
+current code, and would need to be regenerated if the paper wants results
+under the corrected surrogate.
+
 ## 1. Freeze the paper claim
 
 - [ ] Use random search versus GA-only as the primary comparison.

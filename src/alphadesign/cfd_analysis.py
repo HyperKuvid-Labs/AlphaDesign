@@ -687,8 +687,36 @@ class STLWingAnalyzer:
 
         return cd_profile + cd_alpha + cd_induced
 
+    # Main-element ground-effect curve: log-normal bump in h/c, least-squares fit
+    # (RMS residual 0.036, max 0.074) to real CL/CL_freestream data digitized and
+    # quoted from J. Zerihan's PhD thesis (Univ. of Southampton, 2001, Ch.4-5;
+    # Tyrrell 026 front-wing profile, free transition, moving ground, Re~4.5e5),
+    # cross-checked against Zhang, Toet & Zerihan, "Ground Effect Aerodynamics of
+    # Race Cars," Applied Mechanics Reviews 59(1), 2006. Measured peak: CL=1.72 at
+    # h/c=0.082 (2.49x the freestream CL=0.69); measured range h/c in [0.055, 3.36].
+    # Fit peak lands at h/c=0.084, value 2.48 -- both within 3% of the measured peak.
+    _GROUND_EFFECT_MAIN_AMPLITUDE = 1.483
+    _GROUND_EFFECT_MAIN_PEAK_HC = 0.0838
+    _GROUND_EFFECT_MAIN_SIGMA = 0.9624
+
     def calculate_ground_effect(self, ground_clearance_mm, element_idx=0):
-        """Enhanced ground effect calculation"""
+        """Ground-effect multiplier on an element's lift coefficient vs h/c.
+
+        Replaces an earlier piecewise formula that was discontinuous at every
+        branch point and rose monotonically to its maximum as h/c -> 0. That
+        contradicted measurement: real wings in ground effect peak at a small
+        but nonzero h/c and then lose downforce closer to the ground as the
+        trailing-edge boundary layer separates in the narrowed channel (see
+        the class docstring reference above for the exact source). The main-
+        element curve below is fit directly to that measured data. No
+        isolated per-element ground-effect dataset exists for flap elements
+        in the literature reviewed (only combined main+flap system forces
+        are reported); the flap curve keeps the same fitted shape and peak
+        location as the main element, scaled down in amplitude per the
+        literature's qualitative finding that flaps benefit less from ground
+        proximity than the main element, and is a heuristic extrapolation,
+        not a second data fit.
+        """
 
         # Get element chord
         if element_idx < len(self.chord_lengths):
@@ -697,23 +725,17 @@ class STLWingAnalyzer:
             chord = np.mean(self.chord_lengths) if self.chord_lengths else 0.2
 
         h_over_c = (ground_clearance_mm / 1000) / chord
+        h_over_c = max(h_over_c, 1e-6)  # log-normal form is undefined at h/c = 0
 
-        # Element-specific ground effect
-        if element_idx == 0:  # Main element - strongest ground effect
-            if h_over_c < 0.1:
-                ground_factor = 2.2 - 1.2 * h_over_c
-            elif h_over_c < 0.5:
-                ground_factor = 1.0 + 1.2 * np.exp(-3 * h_over_c)
-            else:
-                ground_factor = 1.0 + 0.2 * np.exp(-h_over_c)
-        else:  # Flap elements - reduced ground effect
-            ground_effect_reduction = 0.8 ** element_idx
-            if h_over_c < 0.15:
-                ground_factor = (1.8 - 0.8 * h_over_c) * ground_effect_reduction
-            elif h_over_c < 0.8:
-                ground_factor = (1.0 + 0.8 * np.exp(-2 * h_over_c)) * ground_effect_reduction
-            else:
-                ground_factor = 1.0 + 0.1 * np.exp(-h_over_c) * ground_effect_reduction
+        peak_hc = self._GROUND_EFFECT_MAIN_PEAK_HC
+        sigma = self._GROUND_EFFECT_MAIN_SIGMA
+        if element_idx == 0:
+            amplitude = self._GROUND_EFFECT_MAIN_AMPLITUDE
+        else:
+            amplitude = self._GROUND_EFFECT_MAIN_AMPLITUDE * 0.5 * (0.8 ** (element_idx - 1))
+
+        log_ratio = np.log(h_over_c / peak_hc)
+        ground_factor = 1.0 + amplitude * np.exp(-(log_ratio ** 2) / (2 * sigma ** 2))
 
         return min(ground_factor, 2.5)
 
