@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """Showcase render of the (fixed) ultra-realistic F1 front wing.
 
-Generates a wing with IDEAL_F1_PARAMETERS (mirror-symmetric about Y=0 after
-the half-span generation fix) and renders it headless with pyrender/EGL.
+By default, generates a wing with IDEAL_F1_PARAMETERS (mirror-symmetric
+about Y=0 after the half-span generation fix) and renders it headless with
+pyrender/EGL. Pass --stl to render an existing STL instead (e.g. a specific
+optimizer-found design).
 
 Usage:
-    PYOPENGL_PLATFORM=egl python3 src/experiments/render_wing_showcase.py
+    PYOPENGL_PLATFORM=egl python3 src/experiments/render_wing_showcase.py [accent|carbon]
+    PYOPENGL_PLATFORM=egl python3 src/experiments/render_wing_showcase.py \\
+        --stl path/to/design.stl --out paper/figures/my_render.png [accent|carbon]
 
 Output:
-    paper/figures/wing_showcase.png
+    paper/figures/wing_showcase.png (default) or --out path
 """
+import argparse
 import os
 import sys
 
@@ -32,14 +37,16 @@ OUT_PATH = os.path.join(REPO_ROOT, "paper", "figures", "wing_showcase.png")
 BACKGROUND = (0xF8 / 255, 0xF5 / 255, 0xED / 255, 1.0)  # #f8f5ed
 
 
-def generate_or_load_mesh():
-    """Generate the wing (cached to STL) and return a trimesh mesh in meters."""
-    if not os.path.exists(STL_CACHE):
-        gen = UltraRealisticF1FrontWingGenerator(**IDEAL_F1_PARAMETERS)
-        wing = gen.generate_complete_wing(os.path.basename(STL_CACHE))
-        if wing is None:
-            raise RuntimeError("wing generation failed")
-    tm = trimesh.load(STL_CACHE)
+def generate_or_load_mesh(stl_path=None):
+    """Load an existing STL, or generate the IDEAL preset (cached), in meters."""
+    if stl_path is None:
+        stl_path = STL_CACHE
+        if not os.path.exists(stl_path):
+            gen = UltraRealisticF1FrontWingGenerator(**IDEAL_F1_PARAMETERS)
+            wing = gen.generate_complete_wing(os.path.basename(stl_path))
+            if wing is None:
+                raise RuntimeError("wing generation failed")
+    tm = trimesh.load(stl_path)
     tm.apply_scale(0.001)  # mm -> m
     return tm
 
@@ -63,7 +70,15 @@ def look_at(eye, target, up=(0.0, 0.0, 1.0)):
 
 
 def main():
-    tm = generate_or_load_mesh()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("variant", nargs="?", choices=["carbon", "accent"], default="carbon")
+    parser.add_argument("--stl", default=None, help="render an existing STL instead of the IDEAL preset")
+    parser.add_argument("--out", default=None, help="output PNG path")
+    parser.add_argument("--width", type=int, default=1920)
+    parser.add_argument("--height", type=int, default=1080)
+    args = parser.parse_args()
+
+    tm = generate_or_load_mesh(args.stl)
     bounds = tm.bounds  # meters
     center = tm.centroid
     span_y = bounds[1][1] - bounds[0][1]  # dominant dimension (~1.9-2.5 m)
@@ -71,15 +86,14 @@ def main():
     print(f"bounds (m): {bounds}, span_y={span_y:.3f}")
 
     # --- material ---
-    variant = sys.argv[1] if len(sys.argv) > 1 else "carbon"
-    if variant == "accent":
+    if args.variant == "accent":
         # flat orange accent matching the repo's figure palette (#d94210)
         material = pyrender.MetallicRoughnessMaterial(
             baseColorFactor=(0xD9 / 255, 0x42 / 255, 0x10 / 255, 1.0),
             metallicFactor=0.05,
             roughnessFactor=0.55,
         )
-        out_path = OUT_PATH.replace(".png", "_accent.png")
+        out_path = args.out or OUT_PATH.replace(".png", "_accent.png")
     else:
         # dark carbon-fiber-ish (these wings are carbon fiber)
         material = pyrender.MetallicRoughnessMaterial(
@@ -87,7 +101,7 @@ def main():
             metallicFactor=0.60,
             roughnessFactor=0.30,
         )
-        out_path = OUT_PATH
+        out_path = args.out or OUT_PATH
     mesh = pyrender.Mesh.from_trimesh(tm, material=material, smooth=True)
 
     scene = pyrender.Scene(bg_color=BACKGROUND, ambient_light=(0.18, 0.18, 0.19))
@@ -120,7 +134,7 @@ def main():
     rim = pyrender.DirectionalLight(color=(1.0, 0.98, 0.95), intensity=1.8)
     scene.add(rim, pose=look_at(center + np.array([-2.5, 0.5, 2.5]), center))
 
-    r = pyrender.OffscreenRenderer(1920, 1080)
+    r = pyrender.OffscreenRenderer(args.width, args.height)
     color, _ = r.render(scene)
     r.delete()
 
