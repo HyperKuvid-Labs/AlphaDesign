@@ -202,6 +202,24 @@ class F1FrontWingAnalyzer:
         else:
             return "High Re - Optimal"
 
+    # Ground-effect curve: log-normal bump in h/c, least-squares fit (RMS
+    # residual 0.036, max 0.074) to real CL/CL_freestream data digitized and
+    # quoted from J. Zerihan's PhD thesis (Univ. of Southampton, 2001, Ch.
+    # 4-5; Tyrrell 026 front-wing profile, free transition, moving ground,
+    # Re ~ 4.5e5), cross-checked against Zhang, Toet & Zerihan, "Ground
+    # Effect Aerodynamics of Race Cars," Applied Mechanics Reviews 59(1),
+    # 2006. Measured peak: CL=1.72 at h/c=0.082 (2.49x freestream CL=0.69).
+    # Full data and citations: docs/validation/ground_effect_source_data.md.
+    # Replaces an earlier piecewise formula (branches at h/c=0.1 and 0.3)
+    # that was discontinuous at both breakpoints and rose monotonically to
+    # its maximum as h/c -> 0, contradicting the measured downforce peak
+    # and fall-off. This is the same fit applied to the analogous formula in
+    # cfd_analysis.py::calculate_ground_effect (a separate, unrelated code
+    # path used only by the real-mesh CFD evaluator, not this one).
+    _GROUND_EFFECT_AMPLITUDE = 1.483
+    _GROUND_EFFECT_PEAK_HC = 0.0838
+    _GROUND_EFFECT_SIGMA = 0.9624
+
     def compute_ground_effect_physics(self) -> Dict[str, float]:
         """Compute realistic ground effect based on wing-in-ground-effect theory"""
         p = self.params
@@ -209,18 +227,20 @@ class F1FrontWingAnalyzer:
         # Ground effect parameters
         h_over_c = self.ground_clearance_ref / (p.root_chord / 1000)  # Height to chord ratio
 
-        # Venturi effect calculation
+        x = max(h_over_c, 1e-6) / self._GROUND_EFFECT_PEAK_HC
+        ground_effect_factor = 1.0 + self._GROUND_EFFECT_AMPLITUDE * np.exp(
+            -(np.log(x) ** 2) / (2 * self._GROUND_EFFECT_SIGMA ** 2)
+        )
+
+        # Induced-drag reduction from ground proximity: kept as the original
+        # regime-based approximation. Not covered by the ground-effect
+        # literature review above (which addressed the lift/downforce
+        # multiplier only); still an open validation item.
         if h_over_c < 0.1:
-            # Very close to ground - extreme ground effect
-            ground_effect_factor = 2.5 + 1.0 * np.exp(-10 * h_over_c)
             induced_drag_reduction = 0.4  # 40% reduction
         elif h_over_c < 0.3:
-            # Moderate ground effect
-            ground_effect_factor = 1.5 + 1.0 * np.exp(-5 * h_over_c)
             induced_drag_reduction = 0.25 * np.exp(-3 * h_over_c)
         else:
-            # Minimal ground effect
-            ground_effect_factor = 1.0 + 0.2 * np.exp(-2 * h_over_c)
             induced_drag_reduction = 0.05 * np.exp(-h_over_c)
 
         # Endplate ground effect enhancement
