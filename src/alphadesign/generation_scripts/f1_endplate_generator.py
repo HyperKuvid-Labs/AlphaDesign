@@ -268,134 +268,160 @@ class F1FrontWingEndplateGenerator:
 
     def generate_main_endplate_surface(self, side='right'):
         """
-        Generate the main endplate surface with complete continuity
+        Generate the main endplate as one closed, plate-like solid.
+
+        Outline-driven construction (side view, x = streamwise, z = up):
+
+        - The plate spans from ``virtual_surface_front_x`` (footplate nose,
+          ahead of the main element) to ``virtual_surface_rear_x`` (behind
+          the last flap's trailing edge), so it fully encloses the wing
+          stack like a real F1 endplate.
+        - The bottom-front corner sweeps forward and arches upward
+          (footplate / "shoe" shape, radius ~ footplate_arch_radius).
+        - The rear edge runs full-height to ~72% height, then sweeps
+          forward so the chord at the top equals endplate_min_width while
+          the bottom chord equals endplate_max_width.
+        - A gentle outboard bulge (outboard_wrap_angle) is strongest at the
+          bottom of the plate, like the real footplate flare.
 
         Args:
             side: 'left' or 'right'
 
         Returns:
-            vertices, faces
+            vertices, faces (closed plate solid)
         """
         print(f"Generating {side} endplate main surface...")
 
         side_multiplier = 1 if side == 'right' else -1
         y_base = side_multiplier * self.endplate_y_position
 
+        H = float(self.endplate_height)
+        x_nose = float(self.virtual_surface_front_x)      # footplate front tip
+        x_le = -15.0                                       # just ahead of main element LE
+        x_tail = float(self.virtual_surface_rear_x)       # behind last flap TE
+
+        # Bottom chord is at least endplate_max_width long (centred on the
+        # wing stack); if the wing stack is longer, the stack wins so the
+        # endplate always encloses the elements.
+        chord_bottom = max(x_tail - x_nose, float(self.endplate_max_width))
+        x_tail = x_nose + chord_bottom
+        chord_top = max(min(float(self.endplate_min_width), 0.9 * chord_bottom),
+                        0.35 * chord_bottom)
+
+        arch_top_z = 2.2 * float(self.footplate_height)    # height of footplate arch zone
+        arch_x_end = x_le + 0.85 * float(self.footplate_arch_radius)
+
+        # Outboard bulge amplitude from the wrap angle (subtle, ~tens of mm)
+        wrap_amp = H * math.tan(math.radians(abs(self.outboard_wrap_angle))) * 0.10
+
+        # Forward lean shifts the top edge forward slightly
+        lean_shift = H * math.tan(math.radians(self.forward_lean_angle)) * 0.3
+
+        n_h = self.resolution_height
+        n_w = self.resolution_width
+
+        def smoothstep(t):
+            t = min(max(t, 0.0), 1.0)
+            return t * t * (3.0 - 2.0 * t)
+
+        def x_front(z):
+            # Front edge: footplate nose at the bottom, blending back to
+            # x_le above the arch zone; top-front corner rounds rearward.
+            t = 1.0 - smoothstep(z / max(arch_top_z, 1e-6))
+            xf = x_le + (x_nose - x_le) * (t ** 1.5)
+            if z > 0.78 * H:
+                xf += 0.16 * H * smoothstep((z - 0.78 * H) / (0.22 * H)) ** 2
+            return xf
+
+        def x_rear(z):
+            # Rear edge: full chord up to 72% height, then sweep forward
+            # so the top chord equals chord_top.
+            if z <= 0.72 * H:
+                return x_tail
+            t = smoothstep((z - 0.72 * H) / (0.28 * H))
+            return x_tail + (x_nose + chord_top - x_tail) * t
+
+        def arch_lift(x):
+            # Bottom edge arches upward toward the footplate nose.
+            if x >= arch_x_end:
+                return 0.0
+            t = (arch_x_end - x) / max(arch_x_end - x_nose, 1e-6)
+            return 1.05 * float(self.footplate_height) * (t ** 1.8)
+
         vertices = []
+        for i in range(n_h):
+            z = H * i / (n_h - 1)
+            hf = z / H
 
-        # Get virtual surface for reference
-        z_virt, x_virt = self.compute_virtual_endplate_surface()
+            xf = x_front(z)
+            xr = x_rear(z)
+            depth = xr - xf
 
-        # Generate full 3D surface
-        height_points = np.linspace(0, self.endplate_height, self.resolution_height)
+            # Gentle vertical lean
+            x_shift = lean_shift * hf - H * math.tan(
+                math.radians(self.rearward_sweep_angle)) * 0.1 * (1.0 - hf)
 
-        for h_idx, height in enumerate(height_points):
-            height_factor = height / self.endplate_height
+            # Variable thickness: thicker at the base, thinner at the top
+            thick = max(self.endplate_thickness * (1.0 - 0.4 * hf),
+                        self.minimum_radius * 1.5)
 
-            # Base depth at this height
-            base_depth = self.compute_depth_profile(height_factor)
+            for j in range(n_w):
+                w = depth * j / (n_w - 1) if depth > 0 else 0.0
+                wf = j / (n_w - 1)
+                x = xf + w + x_shift
 
-            # Slot reduction at this height
-            slot_reduction = self.compute_slot_reduction(height)
-            effective_depth = base_depth * (1 - slot_reduction)
+                # Footplate arch: lift the bottom-front region
+                z_pos = z + arch_lift(x) * max(0.0, 1.0 - z / max(1.5 * self.footplate_height, 1e-6))
 
-            # Generate points across width
-            width_points = np.linspace(0, effective_depth, self.resolution_width)
+                # Top edge sculpting (optional waves)
+                if self.top_edge_wave and hf > 0.85:
+                    wave_height = (hf - 0.85) / 0.15
+                    z_pos += (self.top_edge_wave_amplitude * wave_height *
+                              math.sin(self.top_edge_wave_frequency * math.pi * wf))
 
-            for w_idx, width in enumerate(width_points):
-                width_factor = width / effective_depth if effective_depth > 0 else 0
+                # Outboard bulge, strongest low and toward the front
+                bulge = wrap_amp * (math.sin(math.pi * hf) ** 1.2) * (1.0 - 0.6 * wf)
+                y_center = y_base + side_multiplier * bulge
 
-                # === 3D TRANSFORMATIONS ===
+                # Small outboard cant of the whole plate top (real endplates
+                # lean a few degrees outboard at the top)
+                y_center += side_multiplier * 0.02 * z
 
-                # 1. Lean angle (forward at top, rearward at bottom)
-                lean_angle = (self.forward_lean_angle * height_factor -
-                             self.rearward_sweep_angle * (1 - height_factor))
-                lean_rad = math.radians(lean_angle)
-
-                # 2. Outboard wrap (curve away from car)
-                wrap_angle = self.outboard_wrap_angle * width_factor**1.1
-                wrap_rad = math.radians(wrap_angle)
-
-                # 3. Vertical twist
-                twist_factor = self.vertical_twist_factor * height_factor * (1 - width_factor)
-
-                # 4. S-curve longitudinal positioning (FLAT PROFILE - reduced by 80%)
-                s_curve = np.sin(np.pi * height_factor) * 0.05 * self.endplate_max_width  # Was 0.25 - now 0.05 for flatter profile
-
-                # === POSITION CALCULATION ===
-
-                # X (longitudinal) - follows virtual surface with offset
-                x_base = x_virt[h_idx] if h_idx < len(x_virt) else x_virt[-1]
-                x_pos = (x_base +
-                        width * math.cos(lean_rad) +
-                        height * math.sin(lean_rad) * 0.1 +
-                        s_curve)
-
-                # Y (lateral) - with outboard wrap
-                y_pos = (y_base +
-                        side_multiplier * width * math.sin(wrap_rad) +
-                        side_multiplier * twist_factor * 15)
-
-                # Z (vertical) - with lean compensation
-                z_pos = (height -
-                        width * math.sin(lean_rad) * 0.3)
-
-                # Top edge sculpting
-                if self.top_edge_wave and height_factor > 0.85:
-                    wave_height = ((height_factor - 0.85) / 0.15)  # 0 to 1 in top 15%
-                    wave_value = (self.top_edge_wave_amplitude *
-                                 wave_height *
-                                 np.sin(self.top_edge_wave_frequency * np.pi * width_factor))
-                    z_pos += wave_value
-
-                # === THICKNESS ===
-
-                # Variable thickness (thicker at bottom/inside, thinner at top/outside)
-                thickness = (self.endplate_thickness *
-                           (1 - height_factor * 0.6) *
-                           (1 - width_factor * 0.4))
-                thickness = max(thickness, self.minimum_radius * 2)
-
-                # Add both sides of thickness
-                vertices.append([x_pos, y_pos + side_multiplier * thickness/2, z_pos])
-                vertices.append([x_pos, y_pos - side_multiplier * thickness/2, z_pos])
+                vertices.append([x, y_center + side_multiplier * thick / 2, z_pos])
+                vertices.append([x, y_center - side_multiplier * thick / 2, z_pos])
 
         vertices = np.array(vertices)
 
-        # Generate faces
+        # Faces: inner/outer skins + all four edge walls (closed solid)
         faces = []
-        vertices_per_section = 2  # Front and back face
+        stride = n_w * 2
 
-        for h in range(self.resolution_height - 1):
-            for w in range(self.resolution_width - 1):
-                # Base index for this quad
-                base = (h * self.resolution_width + w) * vertices_per_section
+        def idx(i, j, k):
+            return (i * n_w + j) * 2 + k
 
-                # Four corners of quad (each with front/back pair)
-                v0 = base
-                v1 = base + 1
-                v2 = base + self.resolution_width * vertices_per_section
-                v3 = base + self.resolution_width * vertices_per_section + 1
-                v4 = base + vertices_per_section
-                v5 = base + vertices_per_section + 1
-                v6 = base + (self.resolution_width + 1) * vertices_per_section
-                v7 = base + (self.resolution_width + 1) * vertices_per_section + 1
+        for i in range(n_h - 1):
+            for j in range(n_w - 1):
+                # Outer skin (k=0) and inner skin (k=1)
+                faces.append([idx(i, j, 0), idx(i + 1, j, 0), idx(i, j + 1, 0)])
+                faces.append([idx(i, j + 1, 0), idx(i + 1, j, 0), idx(i + 1, j + 1, 0)])
+                faces.append([idx(i, j, 1), idx(i, j + 1, 1), idx(i + 1, j, 1)])
+                faces.append([idx(i, j + 1, 1), idx(i + 1, j + 1, 1), idx(i + 1, j, 1)])
 
-                # Front surface triangles
-                faces.append([v0, v2, v4])
-                faces.append([v4, v2, v6])
-
-                # Back surface triangles
-                faces.append([v1, v5, v3])
-                faces.append([v3, v5, v7])
-
-                # Edge connections
-                if w == 0:  # Leading edge
-                    faces.append([v0, v1, v2])
-                    faces.append([v2, v1, v3])
-                if w == self.resolution_width - 2:  # Trailing edge
-                    faces.append([v4, v6, v5])
-                    faces.append([v5, v6, v7])
+        # Edge walls: front (j=0), rear (j=n_w-1), bottom (i=0), top (i=n_h-1)
+        for i in range(n_h - 1):
+            # front edge
+            faces.append([idx(i, 0, 0), idx(i, 0, 1), idx(i + 1, 0, 0)])
+            faces.append([idx(i + 1, 0, 0), idx(i, 0, 1), idx(i + 1, 0, 1)])
+            # rear edge
+            faces.append([idx(i, n_w - 1, 0), idx(i + 1, n_w - 1, 0), idx(i, n_w - 1, 1)])
+            faces.append([idx(i + 1, n_w - 1, 0), idx(i + 1, n_w - 1, 1), idx(i, n_w - 1, 1)])
+        for j in range(n_w - 1):
+            # bottom edge
+            faces.append([idx(0, j, 0), idx(0, j + 1, 0), idx(0, j, 1)])
+            faces.append([idx(0, j + 1, 0), idx(0, j + 1, 1), idx(0, j, 1)])
+            # top edge
+            faces.append([idx(n_h - 1, j, 0), idx(n_h - 1, j, 1), idx(n_h - 1, j + 1, 0)])
+            faces.append([idx(n_h - 1, j + 1, 0), idx(n_h - 1, j, 1), idx(n_h - 1, j + 1, 1)])
 
         return vertices, np.array(faces)
 

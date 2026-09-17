@@ -1011,18 +1011,25 @@ class UltraRealisticF1FrontWingGenerator:
                     flap_tip_chords=self.flap_tip_chords,
                     flap_cambers=self.flap_cambers,
 
-                    main_element_aoa_range=[-2.3, 1.2],
-                    flap1_aoa_range=[-21.3, 0.0],
-                    flap2_aoa_range=[-16.7, 0.0],
-                    flap3_aoa_range=[-13.5, 0.0],
+                    # Progressive flap deflection: each element is rotated
+                    # nose-down (negative AoA raises the trailing edge) more
+                    # than the previous one, so the stack forms one continuous
+                    # cambered cascade instead of parallel shelves. Tips run
+                    # slightly shallower angles (washout, anti tip-stall).
+                    main_element_aoa_range=[-2.5, 0.0],
+                    flap1_aoa_range=[-12.0, -7.0],
+                    flap2_aoa_range=[-19.0, -14.0],
+                    flap3_aoa_range=[-26.0, -21.0],
+                    flap4_aoa_range=[-33.0, -27.0],
                     aoa_control_points=4,
                     flap_angle_progression=True,
 
-                    flap_slot_gaps=[10, 12, 14],  # Increasing gaps
+                    flap_slot_gaps=list(self.flap_slot_gaps),
                     flap_vertical_offsets=self.flap_vertical_offsets,
                     flap_horizontal_offsets=self.flap_horizontal_offsets,
                     slot_gap_ratios=[0.012, 0.010, 0.008],
                     slot_overhang_ratios=[0.25, 0.22, 0.20],
+                    gap_optimization_enabled=False,  # uniform slot geometry along span
 
                     gurney_flaps=self.gurney_flaps,
                     gurney_flap_heights=[3, 2.5, 2],
@@ -1309,78 +1316,118 @@ class UltraRealisticF1FrontWingGenerator:
 
         return np.array(pylon_vertices), np.array(pylon_faces)
 
+    def generate_central_pylon_assembly(self):
+        """
+        Build the central mounting structure as ONE connected mesh: two tall,
+        thin streamlined fins at +/- pylon_spacing/2 that rise from the main
+        element toward the nose, joined by a thin web that runs between them
+        INSIDE the main element body (invisible). Built as a single spanwise
+        loft of closed super-ellipse sections, so it is one connected
+        component (survives component filtering) with no patch clutter.
+
+        Returns:
+            vertices, faces
+        """
+        # Section geometry (parametric from pylon parameters)
+        fin_chord = max(2.0 * self.pylon_major_axis, 80.0)
+        fin_half_thick = max(0.22 * self.pylon_minor_axis, 5.0)
+        x_center = 0.45 * self.root_chord
+
+        # Vertical extents. The fins embed into the main element at the
+        # bottom and rise above the flap stack like real nose pylons;
+        # between the fins the loft necks down to a thin web hidden inside
+        # the main element body, which keeps the mesh connected.
+        # The main element is strongly cambered: its underside at the fin
+        # chord station sits around z=+10..+25, so the web hides there.
+        z_fin_bottom = 4.0                         # slight embed into main element
+        z_fin_top = 35.0 + 2.4 * self.pylon_length  # rises toward the nose
+        web_bottom = 6.0                            # buried inside main element
+        web_top = 18.0
+        web_chord = 0.85 * fin_chord
+
+        y_fin = self.pylon_spacing / 2.0
+        y_max = y_fin + fin_half_thick + 14.0
+
+        def smoothstep(t):
+            t = min(max(t, 0.0), 1.0)
+            return t * t * (3.0 - 2.0 * t)
+
+        def section_extents(y):
+            """(z_bottom, z_top, chord) of the closed section at spanwise y."""
+            # Fin influence: 1 at the fin centreline, 0 outside the fin
+            d = min(abs(abs(y) - y_fin) / max(fin_half_thick * 1.6, 1e-6), 1.0)
+            fin_w = 1.0 - smoothstep(d)
+
+            z_bot = (1 - fin_w) * web_bottom + fin_w * z_fin_bottom
+            z_top = (1 - fin_w) * web_top + fin_w * z_fin_top
+            chord = max((1 - fin_w) * web_chord + fin_w * fin_chord, 2.0)
+            return z_bot, z_top, chord
+
+        # Spanwise stations, clustered near the fin edges
+        y_stations = sorted(set(
+            list(np.linspace(-y_max, y_max, 41)) +
+            list(np.linspace(-y_fin - fin_half_thick * 2, -y_fin + fin_half_thick * 2, 9)) +
+            list(np.linspace(y_fin - fin_half_thick * 2, y_fin + fin_half_thick * 2, 9))
+        ))
+
+        n_theta = 28
+        thetas = np.linspace(0, 2 * np.pi, n_theta, endpoint=False)
+
+        vertices = []
+        for y in y_stations:
+            z_bot, z_top, chord = section_extents(y)
+            z_c = 0.5 * (z_bot + z_top)
+            half_h = 0.5 * (z_top - z_bot)
+            for t in thetas:
+                # Super-ellipse section: rounded but not elliptically fat
+                ct, st = np.cos(t), np.sin(t)
+                x = x_center + 0.5 * chord * np.sign(ct) * abs(ct) ** 0.75
+                z = z_c + half_h * np.sign(st) * abs(st) ** 0.9
+                vertices.append([x, y, z])
+
+        vertices = np.array(vertices)
+        n_y = len(y_stations)
+
+        faces = []
+        for i in range(n_y - 1):
+            for j in range(n_theta):
+                j1 = (j + 1) % n_theta
+                v0 = i * n_theta + j
+                v1 = i * n_theta + j1
+                v2 = (i + 1) * n_theta + j
+                v3 = (i + 1) * n_theta + j1
+                faces.append([v0, v2, v1])
+                faces.append([v1, v2, v3])
+
+        # End caps (simple fans around the section centroid)
+        for i in (0, n_y - 1):
+            base = i * n_theta
+            centroid = vertices[base:base + n_theta].mean(axis=0)
+            c_idx = len(vertices)
+            vertices = np.vstack([vertices, centroid[None, :]])
+            for j in range(n_theta):
+                j1 = (j + 1) % n_theta
+                if i == 0:
+                    faces.append([c_idx, base + j1, base + j])
+                else:
+                    faces.append([c_idx, base + j, base + j1])
+
+        return vertices, np.array(faces)
+
     def generate_y250_and_central_structure_integrated(self):
         """
-        Generate Y250 region, footplate, strakes, pylons using specialized generator
-        Returns combined vertices and faces
+        Generate the central structure: mounting pylons + nose bridge as a
+        single connected mesh (replaces the old patchwork of ~260 tiny
+        unstitched strake/VG/fence patches that z-fought in renders).
+        Returns combined vertices and faces.
         """
-
-        if not self.use_specialized_generators:
-            print("  Using built-in pylon generator...")
-            return self.generate_mounting_pylons()
-
         try:
-            print("  [SPECIALIZED] Generating Y250 central structure...")
-
-            y250_gen = F1FrontWingY250CentralStructureGenerator(
-                y250_width=self.y250_width,
-                y250_step_height=self.y250_step_height,
-                y250_transition_length=self.y250_transition_length,
-                central_slot_width=self.central_slot_width,
-                y250_vortex_strength=0.85,
-
-                footplate_extension=self.footplate_extension,
-                footplate_height=self.footplate_height,
-                arch_radius=self.arch_radius,
-                footplate_thickness=self.footplate_thickness,
-                primary_strake_count=self.primary_strake_count,
-                strake_heights=self.strake_heights,
-
-                tire_diameter=670,
-                tire_width=305,
-                tire_wake_deflection_angle=15,
-                outwash_optimization=True,
-                wheel_wake_interaction_zone=[600, 900],
-
-                vortex_generator_enabled=True,
-                vg_type="half_tube",
-                vg_height=8,
-                vg_spacing=25,
-                vg_angle=18,
-                outboard_fence_enabled=True,
-                fence_heights=[60, 50, 40],
-                fence_positions=[0.7, 0.85, 0.95],
-
-                pylon_count=self.pylon_count,
-                pylon_spacing=self.pylon_spacing,
-                pylon_major_axis=self.pylon_major_axis,
-                pylon_minor_axis=self.pylon_minor_axis,
-                pylon_length=self.pylon_length,
-
-                cascade_enabled=self.cascade_enabled,
-                primary_cascade_span=self.primary_cascade_span,
-                primary_cascade_chord=self.primary_cascade_chord,
-
-                resolution=80,
-                surface_smoothing=self.surface_smoothing,
-                smoothing_iterations=6
-            )
-
-            # Generate complete Y250 structure
-            y250_mesh = y250_gen.generate_complete_structure(side='both')
-
-            # Extract geometry from STL mesh
-            verts, faces = self._extract_mesh_geometry(y250_mesh)
-
-            # Coordinate adjustment - Y250 structure needs to align with wing
-            z_adjustment = 0  # Y250 already has ground reference, adjust if needed
-            verts[:, 2] += z_adjustment
-
-            print(f"    ✓ Y250 structure: {len(verts)} vertices, {len(faces)} faces")
+            print("  Generating central pylon assembly (single connected mesh)...")
+            verts, faces = self.generate_central_pylon_assembly()
+            print(f"    ✓ Central pylon assembly: {len(verts)} vertices, {len(faces)} faces")
             return verts, faces
-
         except Exception as e:
-            print(f"    ✗ Y250 generator failed: {e}, using fallback")
+            print(f"    ✗ Pylon assembly failed: {e}, using fallback")
             import traceback
             traceback.print_exc()
             return self.generate_mounting_pylons()
@@ -1447,6 +1494,16 @@ class UltraRealisticF1FrontWingGenerator:
             while len(slot_positions) < 4:
                 slot_positions.append([0, 0])  # Disabled slot
 
+            # Chordwise extent of the endplate: enclose the whole element
+            # stack (footplate nose ahead of the main LE to behind the last
+            # flap's TE), using the measured stack footprint when available.
+            stack_rear = getattr(self, '_stack_rear_x', None)
+            if stack_rear is None:
+                stack_rear = (sum(self.flap_horizontal_offsets) +
+                              max(self.flap_root_chords))
+            endplate_front_x = -(self.footplate_extension + 15)
+            endplate_rear_x = stack_rear + 20
+
             endplate_gen = F1FrontWingEndplateGenerator(
                 endplate_y_position=self.total_span / 2,
                 endplate_height=self.endplate_height,
@@ -1454,20 +1511,26 @@ class UltraRealisticF1FrontWingGenerator:
                 endplate_min_width=self.endplate_min_width,
                 endplate_thickness=self.endplate_thickness_base,
 
+                # Outline bounds: enclose the full element stack
+                virtual_surface_front_x=endplate_front_x,
+                virtual_surface_rear_x=endplate_rear_x,
+                virtual_surface_bottom_z=0,
+                virtual_surface_top_z=self.endplate_height,
+
                 # 3D curvature matching wing_generator parameters
                 forward_lean_angle=self.endplate_forward_lean,
                 rearward_sweep_angle=self.endplate_rearward_sweep,
                 outboard_wrap_angle=self.endplate_outboard_wrap,
 
-                # Footplate matching wing_generator
-                footplate_enabled=True,
+                # Footplate arch is baked into the main plate outline
+                footplate_enabled=False,
                 footplate_forward_extension=self.footplate_extension,
                 footplate_height=self.footplate_height,
                 footplate_arch_radius=self.arch_radius,
                 footplate_thickness=self.footplate_thickness,
 
-                # L-bracket for structural connection
-                l_bracket_enabled=True,
+                # L-bracket merged into the plate root (no separate patch)
+                l_bracket_enabled=False,
                 l_bracket_radius=18,
                 l_bracket_height=25,
                 l_bracket_forward_extent=40,
@@ -1486,22 +1549,23 @@ class UltraRealisticF1FrontWingGenerator:
                 diveplane_enabled=False,
                 strakes_enabled=False,
 
-                # Master-level quality settings
+                # Master-level quality settings. No Laplacian smoothing: the
+                # structured grid is already smooth, and smoothing a thin
+                # plate collapses front/back skins toward the mid-plane.
                 resolution_height=100,
                 resolution_width=50,
-                smoothing_iterations=10,
-                top_edge_wave=True,
+                smoothing_iterations=0,
+                top_edge_wave=False,
                 surface_tangent_continuous=True
             )
 
-            # Generate both endplates (SWAPPED: generating opposite sides)
-            # Generate what was originally "right" as "left" and vice versa
-            temp_right_mesh = endplate_gen.generate_complete_endplate(side='left')   # Swapped
-            temp_left_mesh = endplate_gen.generate_complete_endplate(side='right')   # Swapped
+            # Generate both endplates (each generated on its own side)
+            temp_right_mesh = endplate_gen.generate_complete_endplate(side='right')
+            temp_left_mesh = endplate_gen.generate_complete_endplate(side='left')
 
-            # Calculate height offset to match baseplate of wing elements
-            # Wing elements sit at footplate_height above ground, add extra offset for alignment
-            height_offset = self.footplate_height + 15  # Increased by 15mm for better alignment
+            # Endplates reach down almost to the ground (small clearance),
+            # like the real car - not floating at footplate height.
+            height_offset = 8.0
 
             # Extract vertices and faces from mesh objects
             right_vertices = []
@@ -1812,6 +1876,10 @@ class UltraRealisticF1FrontWingGenerator:
                     all_vertices.extend(flap_vertices)
                     all_faces.extend(flap_faces + face_offset)
                     face_offset = len(all_vertices)
+                    # Track the actual rear extent of the flap stack so the
+                    # endplates can be sized to enclose it
+                    stack_rear = float(np.max(flap_vertices[:, 0]))
+                    self._stack_rear_x = max(getattr(self, '_stack_rear_x', 0.0), stack_rear)
                     print(f"✓ Master-level {flap_name}: {len(flap_vertices)} vertices, {len(flap_faces)} faces")
                 except Exception as e:
                     print(f"⚠ {flap_name} generation failed: {str(e)}, continuing...")
@@ -1995,7 +2063,7 @@ IDEAL_F1_PARAMETERS = {
     "tip_chord": 280,
     "chord_taper_ratio": 0.918,
     "sweep_angle": 4.5,                      # Typical F1 range: 2-8°
-    "dihedral_angle": 3.2,                   # Ground effect optimized: 1-6°
+    "dihedral_angle": 1.2,                   # Ground effect optimized: 1-6°
     "twist_distribution_range": [-2.0, 1.0], # Washout for stability
 
     # Enhanced Airfoil Profile (Optimized for downforce)
@@ -2011,17 +2079,17 @@ IDEAL_F1_PARAMETERS = {
     # Enhanced 4-Flap System (ZERO GAP - 100% span extension for direct endplate attachment)
     "flap_count": 4,
     "flap_spans": [1800, 1800, 1800, 1800],  # 100% extension - wings touch endplates (ZERO GAP)
-    "flap_root_chords": [245, 195, 165, 125],
-    "flap_tip_chords": [220, 175, 145, 110],
-    "flap_cambers": [0.142, 0.118, 0.092, 0.068],  # Progressive camber reduction
-    "flap_slot_gaps": [16, 14, 12, 10],      # Optimal 1-2% of chord
-    "flap_vertical_offsets": [28, 52, 78, 120],    # Progressive stacking
-    "flap_horizontal_offsets": [35, 68, 95, 140],  # Overlap for slot effect
+    "flap_root_chords": [220, 170, 135, 100],
+    "flap_tip_chords": [200, 150, 120, 90],
+    "flap_cambers": [0.13, 0.11, 0.09, 0.075],  # Progressive camber reduction
+    "flap_slot_gaps": [13, 12, 11, 10],      # Optimal 1-2% of chord
+    "flap_vertical_offsets": [30, 35, 40, 45],   # Per-flap vertical rise increments
+    "flap_horizontal_offsets": [150, 80, 65, 55],  # Per-flap stagger increments
 
     # Enhanced Endplate System (FIA Article 3.4 Compliance)
-    "endplate_height": 310,                  # FIA max: 325mm (Article 3.4.1)
-    "endplate_max_width": 1000,               # FIA max: 120mm (Article 3.4.2)
-    "endplate_min_width": 500,
+    "endplate_height": 340,                  # Tall enough to cap the flap stack
+    "endplate_max_width": 440,               # Chordwise depth at bottom edge
+    "endplate_min_width": 260,               # Chordwise depth at top edge
     "endplate_thickness_base": 12,
     "endplate_forward_lean": 8,              # Aerodynamic shaping
     "endplate_rearward_sweep": 12,
@@ -2102,7 +2170,7 @@ RB19_INSPIRED_F1_PARAMETERS = {
     "tip_chord": 280,
     "chord_taper_ratio": 0.918,
     "sweep_angle": 4.5,
-    "dihedral_angle": 3.2,
+    "dihedral_angle": 1.2,
     "twist_distribution_range": [-2.0, 1.0],
 
     # RB19 Shallow Wing Philosophy (Lower drag, high efficiency)
@@ -2118,17 +2186,17 @@ RB19_INSPIRED_F1_PARAMETERS = {
     # RB19 4-Flap System (ZERO GAP - 100% span for direct attachment)
     "flap_count": 4,
     "flap_spans": [1800, 1800, 1800, 1800],  # 100% extension - wings touch endplates (ZERO GAP)
-    "flap_root_chords": [245, 195, 165, 125],
-    "flap_tip_chords": [220, 175, 145, 110],
-    "flap_cambers": [0.142, 0.118, 0.092, 0.068],
-    "flap_slot_gaps": [16, 14, 12, 10],      # Optimal slot gaps
-    "flap_vertical_offsets": [28, 52, 78, 115],    # RB19 aggressive top flap
-    "flap_horizontal_offsets": [35, 68, 95, 130],  # RB19 stagger pattern
+    "flap_root_chords": [225, 175, 140, 105],
+    "flap_tip_chords": [205, 155, 125, 95],
+    "flap_cambers": [0.135, 0.11, 0.09, 0.075],
+    "flap_slot_gaps": [13, 12, 11, 10],      # Optimal slot gaps
+    "flap_vertical_offsets": [30, 35, 40, 43],   # Per-flap vertical rise increments
+    "flap_horizontal_offsets": [150, 82, 68, 58],  # Per-flap stagger increments
 
     # Endplate System (FIA Article 3.4 Compliance)
-    "endplate_height": 380,                  # FIA max: 325mm (Article 3.4.1)
-    "endplate_max_width": 400,               # FIA max: 120mm (Article 3.4.2)
-    "endplate_min_width": 150,
+    "endplate_height": 340,                  # Tall enough to cap the flap stack
+    "endplate_max_width": 430,               # Chordwise depth at bottom edge
+    "endplate_min_width": 255,               # Chordwise depth at top edge
     "endplate_thickness_base": 12,
     "endplate_forward_lean": 8,
     "endplate_rearward_sweep": 12,

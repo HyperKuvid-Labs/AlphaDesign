@@ -63,6 +63,7 @@ class F1FrontWingMultiElementGenerator:
                  flap1_aoa_range=[-21.3, 0.0],            # Aggressive at root
                  flap2_aoa_range=[-16.7, 0.0],
                  flap3_aoa_range=[-13.5, 0.0],
+                 flap4_aoa_range=None,                    # None -> extrapolate progression
                  aoa_control_points=4,                     # Spanwise AoA control points
                  flap_angle_progression=True,
 
@@ -149,7 +150,11 @@ class F1FrontWingMultiElementGenerator:
         # Pad per-flap AoA ranges: if flap_count exceeds the explicitly
         # provided ranges (e.g. a 4-flap configuration), repeat the last
         # defined range instead of failing with an IndexError downstream.
-        _aoa_ranges = [flap1_aoa_range, flap2_aoa_range, flap3_aoa_range]
+        if flap4_aoa_range is None:
+            # Extrapolate the flap1->flap3 progression one step further
+            step = [flap3_aoa_range[i] - flap2_aoa_range[i] for i in range(2)]
+            flap4_aoa_range = [flap3_aoa_range[i] + step[i] for i in range(2)]
+        _aoa_ranges = [flap1_aoa_range, flap2_aoa_range, flap3_aoa_range, flap4_aoa_range]
         while len(_aoa_ranges) < flap_count:
             _aoa_ranges.append(list(_aoa_ranges[-1]))
         self.flap_aoa_ranges = _aoa_ranges[:flap_count]
@@ -165,6 +170,9 @@ class F1FrontWingMultiElementGenerator:
         self.slot_angle_progression = slot_angle_progression[:flap_count]
         self.gap_optimization_enabled = gap_optimization_enabled
         self.aerodynamic_slots = aerodynamic_slots
+
+        # Cache for _compute_stack_layout (keyed by span station)
+        self._stack_layout_cache = {}
 
         self.gurney_flaps = gurney_flaps
 
@@ -447,6 +455,123 @@ class F1FrontWingMultiElementGenerator:
 
         return upper_surface, lower_surface
 
+    def _section_surfaces_world(self, element_idx, span_position, le_x, le_z):
+        """
+        Upper/lower section surfaces of an element in world coordinates
+        (gurney flap excluded - it must not drive slot clearance).
+
+        Returns:
+            (upper_x, upper_z, lower_x, lower_z): arrays in world mm;
+            upper arrays sorted by x for interpolation.
+        """
+        chord = self.compute_spanwise_chord(span_position, element_idx)
+        aoa = self.compute_spanwise_aoa(span_position, element_idx)
+
+        if element_idx == 0:
+            camber = self.camber_ratio
+            thickness = self.max_thickness_ratio
+        else:
+            camber = self.flap_cambers[element_idx - 1]
+            thickness = self.max_thickness_ratio * 0.9
+
+        # Gurney tab points stick up at the TE; exclude them from clearance
+        gurney_state = self.gurney_flaps
+        self.gurney_flaps = False
+        try:
+            upper, lower = self.generate_airfoil_section(
+                chord, camber, thickness, element_idx, span_position
+            )
+        finally:
+            self.gurney_flaps = gurney_state
+
+        # Same rotation convention as generate_wing_element_surface
+        aoa_rad = np.radians(aoa)
+        cos_a, sin_a = np.cos(aoa_rad), np.sin(aoa_rad)
+
+        ux = upper[:, 0] * cos_a + upper[:, 1] * sin_a + le_x
+        uz = -upper[:, 0] * sin_a + upper[:, 1] * cos_a + le_z
+        lx = lower[:, 0] * cos_a + lower[:, 1] * sin_a + le_x
+        lz = -lower[:, 0] * sin_a + lower[:, 1] * cos_a + le_z
+
+        order = np.argsort(ux)
+        return ux[order], uz[order], lx, lz
+
+    def _compute_stack_layout(self, span_position):
+        """
+        Compute the (x, z) leading-edge positions of the whole element stack
+        at one span station, as a cohesive multi-slotted cascade.
+
+        The cumulative flap_horizontal_offsets / flap_vertical_offsets are
+        treated as *target* positions, then regularised by two aerodynamic
+        design rules so any parameter combination still forms a valid
+        multi-element wing:
+
+        1. Overlap rule: each flap's leading edge must lie between
+           ~30% of the previous element's chord and the previous trailing
+           edge minus an overhang margin (slot_overhang_ratios), so the
+           elements always overlap and form a real slot.
+        2. Clearance rule: the flap is raised (never lowered) until every
+           point of its lower surface that overlaps the previous element
+           clears that element's upper surface by its flap_slot_gaps value,
+           so elements never interpenetrate and the slot gap is real.
+
+        Returns:
+            list of (le_x, le_z) per element index 0..flap_count
+        """
+        key = round(float(span_position), 6)
+        cached = self._stack_layout_cache.get(key)
+        if cached is not None:
+            return cached
+
+        layout = [(0.0, 0.0)]  # main element LE at origin
+
+        for element_idx in range(1, self.flap_count + 1):
+            flap_idx = element_idx - 1
+
+            prev_x, prev_z = layout[-1]
+            prev_idx = element_idx - 1
+            prev_chord = self.compute_spanwise_chord(span_position, prev_idx)
+            prev_aoa_rad = np.radians(self.compute_spanwise_aoa(span_position, prev_idx))
+
+            chord = self.compute_spanwise_chord(span_position, element_idx)
+
+            # Previous element's upper surface (world coords)
+            pux, puz, _plx, _plz = self._section_surfaces_world(
+                prev_idx, span_position, prev_x, prev_z)
+
+            # --- target from cumulative user offsets ---
+            x_target = float(sum(self.flap_horizontal_offsets[:flap_idx + 1]))
+            z_target = float(sum(self.flap_vertical_offsets[:flap_idx + 1]))
+
+            # --- rule 1: overlap window ---
+            min_stagger = prev_x + 0.30 * prev_chord * np.cos(prev_aoa_rad)
+            prev_te_x = prev_x + prev_chord * np.cos(prev_aoa_rad)
+            overhang = self.slot_overhang_ratios[flap_idx] if flap_idx < len(self.slot_overhang_ratios) else 0.2
+            max_stagger = prev_te_x - overhang * chord
+            if max_stagger < min_stagger:
+                max_stagger = min_stagger
+            x_pos = min(max(x_target, min_stagger), max_stagger)
+
+            # --- rule 2: exact slot clearance ---
+            # Flap lower surface in world x (z measured at z=0 offset; the
+            # whole section shifts rigidly with z_pos).
+            _fux, _fuz, flx, flz = self._section_surfaces_world(
+                element_idx, span_position, x_pos, 0.0)
+
+            gap = self.flap_slot_gaps[flap_idx] if flap_idx < len(self.flap_slot_gaps) else 12.0
+            overlap = (flx >= pux[0] + 1.0) & (flx <= pux[-1] - 1.0)
+            if np.any(overlap):
+                prev_top = np.interp(flx[overlap], pux, puz)
+                z_min = float(np.max(prev_top - flz[overlap])) + gap + 1.5
+            else:
+                z_min = float(np.interp(x_pos, pux, puz)) + gap + 1.5
+            z_pos = max(z_target, z_min)
+
+            layout.append((x_pos, z_pos))
+
+        self._stack_layout_cache[key] = layout
+        return layout
+
     def compute_element_position(self,
                                   element_idx: int,
                                   span_position: float) -> Tuple[float, float, float]:
@@ -464,24 +589,10 @@ class F1FrontWingMultiElementGenerator:
             # Main element at origin
             return 0.0, 0.0, 0.0
 
-        flap_idx = element_idx - 1
+        layout = self._compute_stack_layout(span_position)
+        x_offset, z_offset = layout[min(element_idx, len(layout) - 1)]
 
-        # Cumulative offsets from previous elements
-        x_offset = sum(self.flap_horizontal_offsets[:flap_idx+1])
-        z_offset = sum(self.flap_vertical_offsets[:flap_idx+1])
-
-        # Y offset (spanwise) - typically zero, but could add wash-out
-        y_offset = 0.0
-
-        # === GAP OPTIMIZATION ===
-        if self.gap_optimization_enabled:
-            # Adjust slot gap based on local flow conditions
-            # Larger gaps at root (higher Re, thicker boundary layer)
-            # Smaller gaps at tip (avoid separation)
-            gap_factor = 1.2 - 0.4 * span_position
-            x_offset *= gap_factor
-
-        return x_offset, y_offset, z_offset
+        return x_offset, 0.0, z_offset
 
     def generate_wing_element_surface(self,
                                        element_idx: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -553,46 +664,55 @@ class F1FrontWingMultiElementGenerator:
             dihedral_rad = np.radians(self.dihedral_angle)
             dihedral_offset = (half_pos * half_span) * np.tan(dihedral_rad)
 
-            # Process each surface point
-            for surface in [upper, lower]:
-                for point in surface:
-                    x_local, z_local = point
+            # Process each surface point as ONE closed section loop:
+            # upper surface LE->TE, then lower surface TE->LE. This makes the
+            # chordwise grid wrap around the section, so the element is a
+            # properly closed tube (no TE->LE diagonal web, no broken edge
+            # closure strips when upper/lower point counts differ).
+            section_loop = np.concatenate([upper, lower[::-1]], axis=0)
 
-                    # Apply AoA rotation
-                    x_rot = x_local * cos_aoa + z_local * sin_aoa
-                    z_rot = -x_local * sin_aoa + z_local * cos_aoa
+            for point in section_loop:
+                x_local, z_local = point
 
-                    # Apply twist rotation
-                    x_twist = x_rot * cos_twist - z_rot * sin_twist
-                    z_twist = x_rot * sin_twist + z_rot * cos_twist
+                # Apply AoA rotation
+                x_rot = x_local * cos_aoa + z_local * sin_aoa
+                z_rot = -x_local * sin_aoa + z_local * cos_aoa
 
-                    # Apply 3D positioning
-                    x_final = x_twist + x_offset + sweep_offset
-                    y_final = span_pos * half_span + y_offset
-                    z_final = z_twist + z_offset + dihedral_offset
+                # Apply twist rotation
+                x_twist = x_rot * cos_twist - z_rot * sin_twist
+                z_twist = x_rot * sin_twist + z_rot * cos_twist
 
-                    vertices.append([x_final, y_final, z_final])
+                # Apply 3D positioning
+                x_final = x_twist + x_offset + sweep_offset
+                y_final = span_pos * half_span + y_offset
+                z_final = z_twist + z_offset + dihedral_offset
+
+                vertices.append([x_final, y_final, z_final])
 
         vertices = np.array(vertices)
 
         # === GENERATE FACES (TRIANGULAR MESH) ===
         faces = []
 
+        # Section loop: upper LE->TE then lower TE->LE (closed chordwise)
         n_chord_points = len(upper) + len(lower)
         n_span_points = len(span_stations)
 
-        # Create quad strips and triangulate.
+        # Create wrapped quad strips and triangulate: chordwise index wraps
+        # around the closed section loop, so LE and TE are closed by
+        # construction and every element is one connected watertight-ish tube.
         # Mirror-aware triangulation: the +Y half of the grid uses the
         # opposite quad diagonal (with reversed winding) so that every
         # triangle has an exact mirror-image triangle about Y=0.
         center_pair = n_span_points // 2
         for i in range(n_span_points - 1):
-            for j in range(n_chord_points - 1):
+            for j in range(n_chord_points):
+                j1 = (j + 1) % n_chord_points
                 # Vertex indices for quad
                 v0 = i * n_chord_points + j
-                v1 = v0 + 1
+                v1 = i * n_chord_points + j1
                 v2 = (i + 1) * n_chord_points + j
-                v3 = v2 + 1
+                v3 = (i + 1) * n_chord_points + j1
 
                 # Two triangles per quad
                 if i < center_pair:
@@ -603,41 +723,25 @@ class F1FrontWingMultiElementGenerator:
                     faces.append([v2, v3, v0])
                     faces.append([v3, v1, v0])
 
-        # Close leading and trailing edges
-        for i in range(n_span_points - 1):
-            # Leading edge
-            v_le_upper = i * n_chord_points
-            v_le_lower = v_le_upper + len(upper)
-            v_le_upper_next = (i + 1) * n_chord_points
-            v_le_lower_next = v_le_upper_next + len(upper)
-
-            if i < center_pair:
-                faces.append([v_le_upper, v_le_lower, v_le_upper_next])
-                faces.append([v_le_upper_next, v_le_lower, v_le_lower_next])
-            else:
-                # Mirror image (Y -> -Y, winding reversed) of the -Y side
-                faces.append([v_le_upper_next, v_le_upper, v_le_lower_next])
-                faces.append([v_le_upper, v_le_lower, v_le_lower_next])
-
-            # Trailing edge
-            v_te_upper = i * n_chord_points + len(upper) - 1
-            v_te_lower = (i + 1) * n_chord_points - 1
-            v_te_upper_next = (i + 1) * n_chord_points + len(upper) - 1
-            v_te_lower_next = (i + 2) * n_chord_points - 1
-
-            if i < center_pair:
-                faces.append([v_te_upper, v_te_upper_next, v_te_lower])
-                faces.append([v_te_lower, v_te_upper_next, v_te_lower_next])
-            else:
-                # Mirror image (Y -> -Y, winding reversed) of the -Y side
-                faces.append([v_te_upper_next, v_te_lower_next, v_te_upper])
-                faces.append([v_te_lower_next, v_te_lower, v_te_upper])
+        # Tip caps (close the open ends at +/- half span)
+        for i in (0, n_span_points - 1):
+            base = i * n_chord_points
+            centroid = vertices[base:base + n_chord_points].mean(axis=0)
+            c_idx = len(vertices)
+            vertices = np.vstack([vertices, centroid[None, :]])
+            for j in range(n_chord_points):
+                j1 = (j + 1) % n_chord_points
+                if i == 0:
+                    faces.append([c_idx, base + j1, base + j])
+                else:
+                    faces.append([c_idx, base + j, base + j1])
 
         faces = np.array(faces)
 
         print(f"    ✓ {len(vertices)} vertices, {len(faces)} faces")
 
         return vertices, faces
+
 
     def apply_laplacian_smoothing(self,
                                     vertices: np.ndarray,

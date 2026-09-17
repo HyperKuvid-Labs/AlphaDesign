@@ -472,7 +472,12 @@ class F1FrontWingMainElementGenerator:
 
             # Adjust camber to achieve target CL
             # CL ≈ 2π·α + camber_effect (thin airfoil theory)
-            local_camber = self.camber_ratio * (target_cl / 2.0)  # Simplified scaling
+            # Clamped near 1.0: the CL-based scaling is a weak spanwise
+            # modulation, not a wholesale redesign of the section - an
+            # unclamped factor (0.3x..1.9x with ground effect) warps the
+            # main plane into a visibly twisted ribbon.
+            cl_scale = min(max(target_cl / 2.0, 0.8), 1.15)
+            local_camber = self.camber_ratio * cl_scale
 
             # Generate airfoil section
             upper, lower = self.generate_naca_64a_modified_profile(
@@ -499,8 +504,11 @@ class F1FrontWingMainElementGenerator:
             if self.ground_clearance_variation_spanwise:
                 z_ground_offset -= dihedral_offset  # Dihedral affects ground clearance
 
-            # Process each surface point
-            for surface_name, surface in [('upper', upper), ('lower', lower)]:
+            # Process each surface point as ONE closed section loop:
+            # upper surface LE->TE, then lower surface TE->LE. The chordwise
+            # grid then wraps around the section, so the element is a properly
+            # closed tube (no TE->LE diagonal web, no broken edge closures).
+            for surface_name, surface in [('upper', upper), ('lower', lower[::-1])]:
                 for point in surface:
                     x_local, z_local = point
 
@@ -528,54 +536,40 @@ class F1FrontWingMainElementGenerator:
         n_chord_points = len(upper) + len(lower)
         n_span_points = len(span_stations)
 
+        # Wrapped quad strips: the chordwise index wraps around the closed
+        # section loop, so LE and TE are closed by construction and the
+        # element is one connected tube.
         # Mirror-aware triangulation: the +Y half of the grid uses the
         # opposite quad diagonal (with reversed winding) so that every
         # triangle has an exact mirror-image triangle about Y=0.
         center_pair = n_span_points // 2
         for i in range(n_span_points - 1):
-            for j in range(n_chord_points - 1):
+            for j in range(n_chord_points):
+                j1 = (j + 1) % n_chord_points
                 v0 = i * n_chord_points + j
-                v1 = v0 + 1
+                v1 = i * n_chord_points + j1
                 v2 = (i + 1) * n_chord_points + j
-                v3 = v2 + 1
+                v3 = (i + 1) * n_chord_points + j1
 
                 if i < center_pair:
                     faces.append([v0, v2, v1])
                     faces.append([v1, v2, v3])
                 else:
-                    # Mirror image of the -Y side's [v0,v2,v1] / [v1,v2,v3]
                     faces.append([v2, v3, v0])
                     faces.append([v3, v1, v0])
 
-        # Close leading and trailing edges
-        for i in range(n_span_points - 1):
-            # Leading edge closure
-            v_le_upper = i * n_chord_points
-            v_le_lower = v_le_upper + len(upper)
-            v_le_upper_next = (i + 1) * n_chord_points
-            v_le_lower_next = v_le_upper_next + len(upper)
-
-            if i < center_pair:
-                faces.append([v_le_upper, v_le_lower, v_le_upper_next])
-                faces.append([v_le_upper_next, v_le_lower, v_le_lower_next])
-            else:
-                # Mirror image (Y -> -Y, winding reversed) of the -Y side
-                faces.append([v_le_upper_next, v_le_upper, v_le_lower_next])
-                faces.append([v_le_upper, v_le_lower, v_le_lower_next])
-
-            # Trailing edge closure
-            v_te_upper = i * n_chord_points + len(upper) - 1
-            v_te_lower = (i + 1) * n_chord_points - 1
-            v_te_upper_next = (i + 1) * n_chord_points + len(upper) - 1
-            v_te_lower_next = (i + 2) * n_chord_points - 1
-
-            if i < center_pair:
-                faces.append([v_te_upper, v_te_upper_next, v_te_lower])
-                faces.append([v_te_lower, v_te_upper_next, v_te_lower_next])
-            else:
-                # Mirror image (Y -> -Y, winding reversed) of the -Y side
-                faces.append([v_te_upper_next, v_te_lower_next, v_te_upper])
-                faces.append([v_te_lower_next, v_te_lower, v_te_upper])
+        # Tip caps (close the open ends at +/- half span)
+        for i in (0, n_span_points - 1):
+            base = i * n_chord_points
+            centroid = vertices[base:base + n_chord_points].mean(axis=0)
+            c_idx = len(vertices)
+            vertices = np.vstack([vertices, centroid[None, :]])
+            for j in range(n_chord_points):
+                j1 = (j + 1) % n_chord_points
+                if i == 0:
+                    faces.append([c_idx, base + j1, base + j])
+                else:
+                    faces.append([c_idx, base + j, base + j1])
 
         faces = np.array(faces)
 

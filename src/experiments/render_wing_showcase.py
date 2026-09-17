@@ -141,6 +141,7 @@ def main():
             baseColorFactor=(0xD9 / 255, 0x42 / 255, 0x10 / 255, 1.0),
             metallicFactor=0.05,
             roughnessFactor=0.55,
+            doubleSided=True,
         )
         out_path = args.out or OUT_PATH.replace(".png", "_accent.png")
     else:
@@ -149,6 +150,7 @@ def main():
             baseColorFactor=(0.09, 0.09, 0.105, 1.0),
             metallicFactor=0.60,
             roughnessFactor=0.30,
+            doubleSided=True,
         )
         out_path = args.out or OUT_PATH
     mesh = pyrender.Mesh.from_trimesh(tm, material=material, smooth=True)
