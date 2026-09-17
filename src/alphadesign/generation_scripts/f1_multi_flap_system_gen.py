@@ -146,7 +146,13 @@ class F1FrontWingMultiElementGenerator:
         self.flap_cambers = flap_cambers[:flap_count]
 
         self.main_element_aoa_range = main_element_aoa_range
-        self.flap_aoa_ranges = [flap1_aoa_range, flap2_aoa_range, flap3_aoa_range][:flap_count]
+        # Pad per-flap AoA ranges: if flap_count exceeds the explicitly
+        # provided ranges (e.g. a 4-flap configuration), repeat the last
+        # defined range instead of failing with an IndexError downstream.
+        _aoa_ranges = [flap1_aoa_range, flap2_aoa_range, flap3_aoa_range]
+        while len(_aoa_ranges) < flap_count:
+            _aoa_ranges.append(list(_aoa_ranges[-1]))
+        self.flap_aoa_ranges = _aoa_ranges[:flap_count]
         self.aoa_control_points = aoa_control_points
         self.flap_angle_progression = flap_angle_progression
 
@@ -161,10 +167,21 @@ class F1FrontWingMultiElementGenerator:
         self.aerodynamic_slots = aerodynamic_slots
 
         self.gurney_flaps = gurney_flaps
-        self.gurney_flap_heights = [0] + gurney_flap_heights[:flap_count]  # No gurney on main
-        self.slot_lip_radius = slot_lip_radius[:flap_count]
-        self.leading_edge_droop = [0] + leading_edge_droop[:flap_count]
-        self.trailing_edge_kick_up = [0] + trailing_edge_kick_up[:flap_count]
+
+        # Pad per-element feature lists to flap_count entries by repeating the
+        # last value, so configurations with more flaps than explicitly listed
+        # values (e.g. 4 flaps) do not raise IndexError when indexed by
+        # element_idx downstream.
+        def _pad(values, count):
+            values = list(values)
+            while len(values) < count:
+                values.append(values[-1])
+            return values[:count]
+
+        self.gurney_flap_heights = [0] + _pad(gurney_flap_heights, flap_count)  # No gurney on main
+        self.slot_lip_radius = _pad(slot_lip_radius, flap_count)
+        self.leading_edge_droop = [0] + _pad(leading_edge_droop, flap_count)
+        self.trailing_edge_kick_up = [0] + _pad(trailing_edge_kick_up, flap_count)
         self.element_overlap_optimization = element_overlap_optimization
 
         self.wing_flexibility_enabled = wing_flexibility_enabled
@@ -482,15 +499,23 @@ class F1FrontWingMultiElementGenerator:
 
         vertices = []
 
-        # Spanwise stations
-        span_stations = np.linspace(0, 1, self.resolution_span)
+        # Spanwise stations: generate the FULL span (-1 .. +1) so the wing is
+        # mirror-symmetric about the car centerline (Y=0). Twice as many
+        # stations keep the same per-side spanwise resolution as before.
+        # Odd count so one station lies exactly on the centerline (Y=0)
+        span_stations = np.linspace(-1, 1, 2 * self.resolution_span + 1)
         half_span = self.total_span / 2
 
         for span_idx, span_pos in enumerate(span_stations):
+            # Mirror station: spanwise design distributions (chord, AoA,
+            # twist, local features) are defined for a half-span station in
+            # [0, 1] and apply identically to both sides of the centerline.
+            half_pos = abs(span_pos)
+
             # Compute local parameters
-            chord = self.compute_spanwise_chord(span_pos, element_idx)
-            aoa = self.compute_spanwise_aoa(span_pos, element_idx)
-            twist = self.compute_twist_angle(span_pos)
+            chord = self.compute_spanwise_chord(half_pos, element_idx)
+            aoa = self.compute_spanwise_aoa(half_pos, element_idx)
+            twist = self.compute_twist_angle(half_pos)
 
             if element_idx == 0:
                 camber = self.camber_ratio
@@ -502,11 +527,11 @@ class F1FrontWingMultiElementGenerator:
 
             # Generate airfoil section
             upper, lower = self.generate_airfoil_section(
-                chord, camber, thickness, element_idx, span_pos
+                chord, camber, thickness, element_idx, half_pos
             )
 
             # Get element position offset
-            x_offset, y_offset, z_offset = self.compute_element_position(element_idx, span_pos)
+            x_offset, y_offset, z_offset = self.compute_element_position(element_idx, half_pos)
 
             # === 3D TRANSFORMATIONS ===
 
@@ -520,13 +545,13 @@ class F1FrontWingMultiElementGenerator:
             cos_twist = np.cos(twist_rad)
             sin_twist = np.sin(twist_rad)
 
-            # 3. Sweep (quarter-chord sweep line)
+            # 3. Sweep (quarter-chord sweep line) - mirrored: both tips sweep back
             sweep_rad = np.radians(self.sweep_angle)
-            sweep_offset = (span_pos * half_span) * np.tan(sweep_rad)
+            sweep_offset = (half_pos * half_span) * np.tan(sweep_rad)
 
-            # 4. Dihedral (vertical slope)
+            # 4. Dihedral (vertical slope) - mirrored: both tips rise equally
             dihedral_rad = np.radians(self.dihedral_angle)
-            dihedral_offset = (span_pos * half_span) * np.tan(dihedral_rad)
+            dihedral_offset = (half_pos * half_span) * np.tan(dihedral_rad)
 
             # Process each surface point
             for surface in [upper, lower]:
@@ -556,7 +581,11 @@ class F1FrontWingMultiElementGenerator:
         n_chord_points = len(upper) + len(lower)
         n_span_points = len(span_stations)
 
-        # Create quad strips and triangulate
+        # Create quad strips and triangulate.
+        # Mirror-aware triangulation: the +Y half of the grid uses the
+        # opposite quad diagonal (with reversed winding) so that every
+        # triangle has an exact mirror-image triangle about Y=0.
+        center_pair = n_span_points // 2
         for i in range(n_span_points - 1):
             for j in range(n_chord_points - 1):
                 # Vertex indices for quad
@@ -566,8 +595,13 @@ class F1FrontWingMultiElementGenerator:
                 v3 = v2 + 1
 
                 # Two triangles per quad
-                faces.append([v0, v2, v1])
-                faces.append([v1, v2, v3])
+                if i < center_pair:
+                    faces.append([v0, v2, v1])
+                    faces.append([v1, v2, v3])
+                else:
+                    # Mirror image of the -Y side's [v0,v2,v1] / [v1,v2,v3]
+                    faces.append([v2, v3, v0])
+                    faces.append([v3, v1, v0])
 
         # Close leading and trailing edges
         for i in range(n_span_points - 1):
@@ -577,8 +611,13 @@ class F1FrontWingMultiElementGenerator:
             v_le_upper_next = (i + 1) * n_chord_points
             v_le_lower_next = v_le_upper_next + len(upper)
 
-            faces.append([v_le_upper, v_le_lower, v_le_upper_next])
-            faces.append([v_le_upper_next, v_le_lower, v_le_lower_next])
+            if i < center_pair:
+                faces.append([v_le_upper, v_le_lower, v_le_upper_next])
+                faces.append([v_le_upper_next, v_le_lower, v_le_lower_next])
+            else:
+                # Mirror image (Y -> -Y, winding reversed) of the -Y side
+                faces.append([v_le_upper_next, v_le_upper, v_le_lower_next])
+                faces.append([v_le_upper, v_le_lower, v_le_lower_next])
 
             # Trailing edge
             v_te_upper = i * n_chord_points + len(upper) - 1
@@ -586,8 +625,13 @@ class F1FrontWingMultiElementGenerator:
             v_te_upper_next = (i + 1) * n_chord_points + len(upper) - 1
             v_te_lower_next = (i + 2) * n_chord_points - 1
 
-            faces.append([v_te_upper, v_te_upper_next, v_te_lower])
-            faces.append([v_te_lower, v_te_upper_next, v_te_lower_next])
+            if i < center_pair:
+                faces.append([v_te_upper, v_te_upper_next, v_te_lower])
+                faces.append([v_te_lower, v_te_upper_next, v_te_lower_next])
+            else:
+                # Mirror image (Y -> -Y, winding reversed) of the -Y side
+                faces.append([v_te_upper_next, v_te_lower_next, v_te_upper])
+                faces.append([v_te_lower_next, v_te_lower, v_te_upper])
 
         faces = np.array(faces)
 

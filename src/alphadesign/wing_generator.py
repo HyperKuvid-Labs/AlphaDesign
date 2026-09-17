@@ -886,8 +886,26 @@ class UltraRealisticF1FrontWingGenerator:
             points_per_airfoil = self.resolution_chord * 2
             total_airfoils = len(cascade_vertices) // points_per_airfoil
 
+            # Airfoils are laid out as: side -1 primary (20), side -1
+            # secondary (15), side +1 primary (20), side +1 secondary (15).
+            # Never bridge across group boundaries - a bridge between sides
+            # would span the entire car centerline with junk faces.
+            primary_count = 20
+            secondary_count = 15
+            group_endings = {primary_count - 1,
+                             primary_count + secondary_count - 1,
+                             2 * primary_count + secondary_count - 1,
+                             total_airfoils - 1}
+
             for airfoil_idx in range(total_airfoils - 1):
+                if airfoil_idx in group_endings:
+                    continue  # Do not connect separate cascade groups/sides
                 base_idx = airfoil_idx * points_per_airfoil
+
+                # Mirror-aware triangulation: the +Y (second) side uses the
+                # opposite strip diagonal with reversed winding so every
+                # triangle has an exact mirror image about Y=0.
+                second_side = airfoil_idx >= primary_count + secondary_count
 
                 for j in range(0, points_per_airfoil - 2, 2):
                     if base_idx + j + points_per_airfoil + 3 < len(cascade_vertices):
@@ -896,9 +914,15 @@ class UltraRealisticF1FrontWingGenerator:
                         v3 = v1 + points_per_airfoil
                         v4 = v3 + 1
 
-                        cascade_faces.extend([
-                            [v1, v3, v2], [v2, v3, v4]
-                        ])
+                        if not second_side:
+                            cascade_faces.extend([
+                                [v1, v3, v2], [v2, v3, v4]
+                            ])
+                        else:
+                            # Mirror image (Y -> -Y, winding reversed)
+                            cascade_faces.extend([
+                                [v3, v4, v1], [v4, v2, v1]
+                            ])
 
         return np.array(cascade_vertices), np.array(cascade_faces)
 

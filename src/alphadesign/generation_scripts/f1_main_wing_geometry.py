@@ -452,15 +452,23 @@ class F1FrontWingMainElementGenerator:
         vertices = []
         pressure_data = []  # For CFD validation
 
-        # Spanwise stations
-        span_stations = np.linspace(0, 1, self.resolution_span)
+        # Spanwise stations: generate the FULL span (-1 .. +1) so the wing is
+        # mirror-symmetric about the car centerline (Y=0). Twice as many
+        # stations keep the same per-side spanwise resolution as before.
+        # Odd count so one station lies exactly on the centerline (Y=0)
+        span_stations = np.linspace(-1, 1, 2 * self.resolution_span + 1)
         half_span = self.total_span / 2
 
         for span_idx, span_pos in enumerate(span_stations):
+            # Mirror station: spanwise design distributions (chord, twist,
+            # target CL, camber) are defined for a half-span station in
+            # [0, 1] and apply identically to both sides of the centerline.
+            half_pos = abs(span_pos)
+
             # Compute local parameters
-            chord = self.compute_local_chord(span_pos)
-            twist = self.compute_local_twist(span_pos)
-            target_cl = self.compute_target_cl(span_pos)
+            chord = self.compute_local_chord(half_pos)
+            twist = self.compute_local_twist(half_pos)
+            target_cl = self.compute_target_cl(half_pos)
 
             # Adjust camber to achieve target CL
             # CL ≈ 2π·α + camber_effect (thin airfoil theory)
@@ -468,7 +476,7 @@ class F1FrontWingMainElementGenerator:
 
             # Generate airfoil section
             upper, lower = self.generate_naca_64a_modified_profile(
-                chord, local_camber, self.max_thickness_ratio, span_pos
+                chord, local_camber, self.max_thickness_ratio, half_pos
             )
 
             # === 3D TRANSFORMATIONS ===
@@ -478,13 +486,13 @@ class F1FrontWingMainElementGenerator:
             cos_twist = np.cos(twist_rad)
             sin_twist = np.sin(twist_rad)
 
-            # 2. Sweep (quarter-chord line swept back)
+            # 2. Sweep (quarter-chord line swept back) - mirrored: both tips sweep back
             sweep_rad = np.radians(self.sweep_angle)
-            sweep_offset = (span_pos * half_span) * np.tan(sweep_rad)
+            sweep_offset = (half_pos * half_span) * np.tan(sweep_rad)
 
-            # 3. Dihedral (vertical curvature)
+            # 3. Dihedral (vertical curvature) - mirrored: both tips rise equally
             dihedral_rad = np.radians(self.dihedral_angle)
-            dihedral_offset = (span_pos * half_span) * np.tan(dihedral_rad)
+            dihedral_offset = (half_pos * half_span) * np.tan(dihedral_rad)
 
             # 4. Ground clearance
             z_ground_offset = -self.nominal_ride_height
@@ -520,6 +528,10 @@ class F1FrontWingMainElementGenerator:
         n_chord_points = len(upper) + len(lower)
         n_span_points = len(span_stations)
 
+        # Mirror-aware triangulation: the +Y half of the grid uses the
+        # opposite quad diagonal (with reversed winding) so that every
+        # triangle has an exact mirror-image triangle about Y=0.
+        center_pair = n_span_points // 2
         for i in range(n_span_points - 1):
             for j in range(n_chord_points - 1):
                 v0 = i * n_chord_points + j
@@ -527,8 +539,13 @@ class F1FrontWingMainElementGenerator:
                 v2 = (i + 1) * n_chord_points + j
                 v3 = v2 + 1
 
-                faces.append([v0, v2, v1])
-                faces.append([v1, v2, v3])
+                if i < center_pair:
+                    faces.append([v0, v2, v1])
+                    faces.append([v1, v2, v3])
+                else:
+                    # Mirror image of the -Y side's [v0,v2,v1] / [v1,v2,v3]
+                    faces.append([v2, v3, v0])
+                    faces.append([v3, v1, v0])
 
         # Close leading and trailing edges
         for i in range(n_span_points - 1):
@@ -538,8 +555,13 @@ class F1FrontWingMainElementGenerator:
             v_le_upper_next = (i + 1) * n_chord_points
             v_le_lower_next = v_le_upper_next + len(upper)
 
-            faces.append([v_le_upper, v_le_lower, v_le_upper_next])
-            faces.append([v_le_upper_next, v_le_lower, v_le_lower_next])
+            if i < center_pair:
+                faces.append([v_le_upper, v_le_lower, v_le_upper_next])
+                faces.append([v_le_upper_next, v_le_lower, v_le_lower_next])
+            else:
+                # Mirror image (Y -> -Y, winding reversed) of the -Y side
+                faces.append([v_le_upper_next, v_le_upper, v_le_lower_next])
+                faces.append([v_le_upper, v_le_lower, v_le_lower_next])
 
             # Trailing edge closure
             v_te_upper = i * n_chord_points + len(upper) - 1
@@ -547,8 +569,13 @@ class F1FrontWingMainElementGenerator:
             v_te_upper_next = (i + 1) * n_chord_points + len(upper) - 1
             v_te_lower_next = (i + 2) * n_chord_points - 1
 
-            faces.append([v_te_upper, v_te_upper_next, v_te_lower])
-            faces.append([v_te_lower, v_te_upper_next, v_te_lower_next])
+            if i < center_pair:
+                faces.append([v_te_upper, v_te_upper_next, v_te_lower])
+                faces.append([v_te_lower, v_te_upper_next, v_te_lower_next])
+            else:
+                # Mirror image (Y -> -Y, winding reversed) of the -Y side
+                faces.append([v_te_upper_next, v_te_lower_next, v_te_upper])
+                faces.append([v_te_lower_next, v_te_lower, v_te_upper])
 
         faces = np.array(faces)
 
